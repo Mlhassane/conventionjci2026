@@ -1,0 +1,144 @@
+export type EventSettings = {
+  id: string;
+  event_name: string;
+  tagline: string;
+  hashtag: string;
+  start_date: string; // ISO date
+  end_date: string; // ISO date
+  location: string;
+  hero_text: string;
+  logo_url: string | null;
+  secondary_logo_url: string | null;
+  color_primary: string;
+  color_accent: string;
+  social_facebook: string | null;
+  social_instagram: string | null;
+  social_linkedin: string | null;
+  social_whatsapp: string | null;
+  updated_at?: string;
+};
+
+export type Participant = {
+  id: string;
+  name: string;
+  city: string | null;
+  organization: string | null;
+  role: string | null;
+  photo_url: string | null;
+  is_public: boolean;
+  /** Phone number used for espace login (never exposed to anon). */
+  phone: string | null;
+  /** Unique code assigned by the admin after payment, used for espace login. */
+  member_code: string | null;
+  created_at: string;
+};
+
+export type BadgeStatus = "active" | "revoked";
+
+export type Badge = {
+  id: string;
+  participant_id: string | null;
+  full_name: string;
+  role: string;
+  organization: string | null;
+  city: string | null;
+  photo_url: string | null;
+  unique_code: string;
+  status: BadgeStatus;
+  badge_url: string | null;
+  created_at: string;
+};
+
+export type PartnerCategory =
+  | "Partenaire officiel"
+  | "Partenaire principal"
+  | "Sponsor"
+  | "Partenaire média"
+  | "Partenaire institutionnel"
+  | "Partenaire technique";
+
+export type Partner = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  category: PartnerCategory;
+  description: string | null;
+  website: string | null;
+  whatsapp: string | null;
+  offer: string | null;
+  display_order: number;
+  is_visible: boolean;
+  created_at: string;
+};
+
+export type Speaker = {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  position: string | null;
+  organization: string | null;
+  bio: string | null;
+  display_order: number;
+  is_visible: boolean;
+  created_at: string;
+};
+
+export type SessionCategory =
+  | "Cérémonie"
+  | "Formation"
+  | "Panel"
+  | "Networking"
+  | "Pause"
+  | "Soirée"
+  | "Statutaire";
+
+export type ProgramSession = {
+  id: string;
+  date: string; // ISO date, e.g. 2026-10-09
+  start_time: string; // HH:mm
+  end_time: string | null;
+  title: string;
+  description: string | null;
+  location: string | null;
+  category: SessionCategory;
+  speaker_id: string | null;
+  display_order: number;
+  is_visible: boolean;
+};
+
+export type PracticalInfoSection =
+  | "Lieu"
+  | "Localisation"
+  | "Hébergement"
+  | "Transport"
+  | "Restauration"
+  | "Contacts utiles"
+  | "Informations importantes";
+
+export type PracticalInfo = {
+  id: string;
+  section: PracticalInfoSection;
+  title: string;
+  content: string;
+  map_url: string | null;
+  display_order: number;
+  is_visible: boolean;
+};
+
+export type AnalyticsEventName =
+  | "poster_generated"
+  | "poster_downloaded"
+  | "poster_shared"
+  | "whatsapp_share_clicked"
+  | "badge_generated"
+  | "badge_downloaded"
+  | "partner_viewed"
+  | "speaker_viewed"
+  | "program_viewed";
+
+export type AnalyticsEvent = {
+  id: string;
+  event_name: AnalyticsEventName;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
