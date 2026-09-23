@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import ImageUpload from "@/components/form/ImageUpload";
+import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import { EventSettings } from "@/lib/types";
 import { mockEventSettings } from "@/lib/mockData";
 
@@ -10,6 +12,7 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -24,6 +27,24 @@ export default function AdminSettingsPage() {
       .maybeSingle()
       .then(({ data }) => setSettings((data as EventSettings) ?? mockEventSettings));
   }, []);
+
+  async function handleLogoFile(
+    file: File,
+    field: "logo_url" | "secondary_logo_url",
+    fixedName: string
+  ) {
+    setError(null);
+    setUploading(field);
+    const url = await uploadAdminImage("branding", "logos", file, {
+      fixedName,
+    });
+    setUploading(null);
+    if (!url) {
+      setError("Échec de l’envoi du logo. Réessayez.");
+      return;
+    }
+    setSettings((s) => (s ? { ...s, [field]: url } : s));
+  }
 
   async function handleSave() {
     if (!settings) return;
@@ -119,18 +140,30 @@ export default function AdminSettingsPage() {
         </Field>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Logo principal (URL)">
-            <input
-              value={settings.logo_url ?? ""}
-              onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
-              className={inputClass}
+          <Field label="Logo principal">
+            <ImageUpload
+              onFile={(f) => handleLogoFile(f, "logo_url", "primary")}
+              currentUrl={settings.logo_url}
+              error={
+                uploading === "logo_url" ? "Envoi en cours…" : null
+              }
+              shape="rect"
+              label="Téléverser le logo principal"
+              hint="PNG transparent recommandé, 8 Mo max"
             />
           </Field>
-          <Field label="Logo secondaire (URL)">
-            <input
-              value={settings.secondary_logo_url ?? ""}
-              onChange={(e) => setSettings({ ...settings, secondary_logo_url: e.target.value })}
-              className={inputClass}
+          <Field label="Logo secondaire">
+            <ImageUpload
+              onFile={(f) => handleLogoFile(f, "secondary_logo_url", "secondary")}
+              currentUrl={settings.secondary_logo_url}
+              error={
+                uploading === "secondary_logo_url"
+                  ? "Envoi en cours…"
+                  : null
+              }
+              shape="rect"
+              label="Téléverser le logo secondaire"
+              hint="PNG transparent recommandé, 8 Mo max"
             />
           </Field>
         </div>
@@ -190,10 +223,12 @@ export default function AdminSettingsPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !!uploading}
             className="btn btn-primary"
           >
-            {saving ? "Enregistrement…" : "Enregistrer les modifications"}
+            {saving || uploading
+              ? "Enregistrement…"
+              : "Enregistrer les modifications"}
           </button>
           {saved && <span className="text-sm text-success">Modifications enregistrées ✓</span>}
         </div>

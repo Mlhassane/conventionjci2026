@@ -10,6 +10,7 @@ import {
 } from "./mockData";
 import {
   EventSettings,
+  Official,
   Participant,
   Partner,
   PracticalInfo,
@@ -100,6 +101,18 @@ export async function getPracticalInfo(): Promise<PracticalInfo[]> {
     .order("display_order", { ascending: true });
   if (error || !data) return mockPracticalInfo;
   return data as PracticalInfo[];
+}
+
+export async function getOfficials(): Promise<Official[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("officials")
+    .select("*")
+    .eq("is_visible", true)
+    .order("display_order", { ascending: true });
+  if (error || !data) return [];
+  return data as Official[];
 }
 
 export async function getPublicParticipants(): Promise<Participant[]> {

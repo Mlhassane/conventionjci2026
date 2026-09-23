@@ -4,6 +4,8 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { getSpeakers } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function IntervenantsPage() {
   const speakers = await getSpeakers();
 

@@ -1,19 +1,25 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const LINKS = [
-  { href: "/", label: "Accueil" },
-  { href: "/visuel", label: "Mon visuel" },
-  { href: "/badge", label: "Mon badge" },
-  { href: "/programme", label: "Programme" },
-  { href: "/intervenants", label: "Intervenants" },
-  { href: "/partenaires", label: "Partenaires" },
+type NavItem = {
+  href: string;
+  label: string;
+  /** show on lg+ (desktop nav) */
+  primary?: boolean;
+};
+
+const LINKS: NavItem[] = [
+  { href: "/", label: "Accueil", primary: true },
+  { href: "/programme", label: "Programme", primary: true },
+  { href: "/intervenants", label: "Intervenants", primary: true },
+  { href: "/partenaires", label: "Partenaires", primary: true },
+  { href: "/infos", label: "Infos", primary: true },
   { href: "/participants", label: "Participants" },
-  { href: "/infos", label: "Infos pratiques" },
 ];
 
 export default function Nav() {
@@ -22,121 +28,150 @@ export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 16);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   if (pathname?.startsWith("/admin")) return null;
 
+  const isHome = pathname === "/";
+  const overHero = isHome && !scrolled;
+
   return (
-    <header
-      className={`sticky top-0 z-50 bg-paper/85 backdrop-blur-md border-b transition-shadow duration-300 ${
-        scrolled ? "border-line/10 shadow-nav" : "border-line/5"
-      }`}
-    >
-      <div className="container-edge flex items-center justify-between h-16 md:h-[68px]">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-paper font-serif text-[11px] font-semibold tracking-tight transition-colors group-hover:bg-blue group-hover:text-ink">
-            JCI
-          </span>
-          <span className="flex flex-col leading-none">
-            <span className="font-serif text-lg md:text-xl tracking-tight">
-              JCI Experience
-            </span>
-            <span className="font-sans text-[9px] tracking-wide2 uppercase text-blue-dark mt-1">
-              Convention 2026
-            </span>
-          </span>
-        </Link>
+    <>
+      {!isHome && (
+        <div aria-hidden className="h-[5.5rem] md:h-[7rem]" />
+      )}
 
-        <nav className="hidden lg:flex items-center gap-1">
-          {LINKS.slice(1).map((link) => {
-            const active = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`rounded-full px-3.5 py-2 text-sm transition-colors ${
-                  active
-                    ? "bg-blue/10 text-blue-dark font-medium"
-                    : "text-ink/55 hover:text-ink hover:bg-ink/5"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="hidden lg:block">
-          <Link href="/badge" className="btn btn-primary btn-sm">
-            Créer mon badge
+      <header
+        className={`fixed top-5 md:top-7 left-1/2 -translate-x-1/2 z-50 w-[96%] md:w-[80%] transition-all duration-300 bg-paper border border-line/10 shadow-nav ${
+          open ? "rounded-[1.75rem]" : "rounded-full"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 h-12 md:h-14 px-3 md:px-4">
+          <Link
+            href="/"
+            className="flex items-center gap-2 group shrink-0 min-w-0"
+          >
+            <Image
+              src="/logo.png"
+              alt="JCI Experience"
+              width={112}
+              height={40}
+              priority
+              className="h-9 md:h-11 w-auto object-contain transition-opacity group-hover:opacity-85"
+            />
           </Link>
+
+          <nav className="hidden lg:flex items-center gap-0.5 min-w-0">
+            {LINKS.filter((l) => l.primary).map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`rounded-full px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors ${
+                    active
+                      ? "bg-blue text-paper font-semibold"
+                      : "text-ink/65 hover:text-ink hover:bg-ink/5"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <Link
+              href="/espace"
+              className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-[13px] font-semibold whitespace-nowrap transition-all select-none border ${
+                pathname?.startsWith("/espace")
+                  ? "bg-ink text-paper border-ink"
+                  : "border-ink/20 text-ink hover:border-ink"
+              }`}
+            >
+              Participant
+            </Link>
+            
+          </div>
+
+          <button
+            aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={open}
+            className="lg:hidden flex shrink-0 items-center justify-center h-9 w-9 -mr-1 rounded-xl text-ink"
+            onClick={() => setOpen((v) => !v)}
+          >
+            <span className="relative flex flex-col gap-1.5 w-5">
+              <span
+                className={`block h-[1.5px] w-full bg-current transition-transform rounded-full ${
+                  open ? "translate-y-[7px] rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`block h-[1.5px] w-full bg-current transition-opacity rounded-full ${
+                  open ? "opacity-0" : "opacity-100"
+                }`}
+              />
+              <span
+                className={`block h-[1.5px] w-full bg-current transition-transform rounded-full ${
+                  open ? "-translate-y-[7px] -rotate-45" : ""
+                }`}
+              />
+            </span>
+          </button>
         </div>
 
-        <button
-          aria-label="Ouvrir le menu"
-          className="lg:hidden flex flex-col gap-1.5 p-2 -mr-2"
-          onClick={() => setOpen((v) => !v)}
-        >
-          <span
-            className={`block h-[1.5px] w-6 bg-ink transition-transform rounded-full ${
-              open ? "translate-y-[6.5px] rotate-45" : ""
-            }`}
-          />
-          <span
-            className={`block h-[1.5px] w-6 bg-ink transition-opacity rounded-full ${
-              open ? "opacity-0" : "opacity-100"
-            }`}
-          />
-          <span
-            className={`block h-[1.5px] w-6 bg-ink transition-transform rounded-full ${
-              open ? "-translate-y-[6.5px] -rotate-45" : ""
-            }`}
-          />
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {open && (
-          <motion.nav
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="lg:hidden overflow-hidden border-t border-line/10 bg-paper"
-          >
-            <div className="container-edge py-4 flex flex-col gap-1">
-              {LINKS.map((link) => {
-                const active = pathname === link.href;
-                return (
+        <AnimatePresence>
+          {open && (
+            <motion.nav
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="lg:hidden overflow-hidden border-t border-line/10 bg-paper"
+            >
+              <div className="max-h-[60vh] overflow-y-auto px-3 py-3">
+                <div className="grid grid-cols-2 gap-1.5">
+                  {LINKS.map((link) => {
+                    const active = pathname === link.href;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setOpen(false)}
+                        className={`rounded-xl px-3 py-2.5 text-sm text-center transition-colors ${
+                          active
+                            ? "bg-blue/10 text-blue-dark font-semibold"
+                            : "text-ink hover:bg-ink/5"
+                        }`}
+                      >
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="mt-2.5 grid gap-2">
                   <Link
-                    key={link.href}
-                    href={link.href}
+                    href="/espace"
                     onClick={() => setOpen(false)}
-                    className={`rounded-xl px-4 py-3 font-sans text-base transition-colors ${
-                      active
-                        ? "bg-blue/10 text-blue-dark font-medium"
-                        : "hover:bg-ink/5"
-                    }`}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-ink/20 px-6 py-3 text-sm font-semibold hover:border-ink transition-colors"
                   >
-                    {link.label}
+                    Participant
                   </Link>
-                );
-              })}
-              <Link
-                href="/badge"
-                onClick={() => setOpen(false)}
-                className="btn btn-primary btn-block mt-3"
-              >
-                Créer mon badge
-              </Link>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
-    </header>
+                 
+                </div>
+              </div>
+            </motion.nav>
+          )}
+        </AnimatePresence>
+      </header>
+    </>
   );
 }

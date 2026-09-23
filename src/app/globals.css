@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --font-fraunces: "Fraunces", Georgia, serif;
-  --font-manrope: "Manrope", system-ui, sans-serif;
+  --font-jakarta: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-arvo: "Arvo", Georgia, serif;
 }
 
 html {

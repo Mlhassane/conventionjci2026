@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
@@ -62,8 +64,37 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <p className="eyebrow">Administration</p>
-      <h1 className="mt-4 font-serif text-3xl">Vue d&apos;ensemble</h1>
+      <div className="card shadow-card overflow-hidden">
+        <div className="flex flex-wrap items-center gap-5 p-6 md:p-8">
+          <span className="inline-block rounded-2xl bg-white px-5 py-3 shadow-soft ring-1 ring-line/10">
+            <Image
+              src="/logo.png"
+              alt="Convention Nationale JCI Niger 2026"
+              width={320}
+              height={112}
+              priority
+              className="h-14 md:h-16 w-auto object-contain"
+            />
+          </span>
+          <div className="flex-1 min-w-[200px]">
+            <p className="eyebrow">Convention Nationale · Maradi</p>
+            <h1 className="mt-4 font-serif text-3xl text-balance">
+              Vue d&apos;ensemble
+            </h1>
+            <p className="mt-2 text-sm text-ink/55">
+              9 — 10 octobre 2026 · Pilotez la Convention depuis cette console.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/participants" className="btn btn-primary btn-sm">
+              Inscrire un participant
+            </Link>
+            <Link href="/" className="btn btn-secondary btn-sm">
+              Voir le site
+            </Link>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-8 grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard label="Participants" value={counts?.participants} />

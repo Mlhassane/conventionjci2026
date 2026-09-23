@@ -1,12 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import PhotoUpload from "@/components/form/PhotoUpload";
 import { drawPoster } from "@/lib/canvas/poster";
-import { loadImageFromFile, canvasToBlob } from "@/lib/canvas/loadImage";
+import {
+  loadImageFromFile,
+  loadImageFromUrl,
+  canvasToBlob,
+} from "@/lib/canvas/loadImage";
 import { track } from "@/lib/analytics";
+import { useEspaceProfile } from "@/lib/espace";
 
 const PRESET_MESSAGES = [
   "Je viens rencontrer et connecter.",
@@ -25,13 +31,31 @@ export default function VisuelPage() {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [organization, setOrganization] = useState("");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoImg, setPhotoImg] = useState<HTMLImageElement | null>(null);
   const [selectedMessage, setSelectedMessage] = useState(PRESET_MESSAGES[0]);
   const [customMessage, setCustomMessage] = useState("");
   const [useCustom, setUseCustom] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pngUrl, setPngUrl] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const prefilledRef = useRef(false);
+
+  // Espace requis : sans code convention, retour vers la connexion.
+  const { status, profile } = useEspaceProfile("/visuel");
+
+  // Pré-remplit depuis le profil connecté (dont la photo de l'espace).
+  useEffect(() => {
+    if (status !== "ready" || !profile || prefilledRef.current) return;
+    prefilledRef.current = true;
+    setName(profile.name);
+    setCity(profile.city ?? "");
+    setOrganization(profile.organization ?? "");
+    if (profile.photo_url) {
+      loadImageFromUrl(profile.photo_url)
+        .then((img) => setPhotoImg(img))
+        .catch(() => {});
+    }
+  }, [status, profile]);
 
   const finalMessage = useCustom ? customMessage.trim() : selectedMessage;
 
@@ -48,7 +72,7 @@ export default function VisuelPage() {
     if (!validate()) return;
     setStep("loading");
     try {
-      const photo = photoFile ? await loadImageFromFile(photoFile) : null;
+      const photo = photoImg;
       if (document.fonts?.ready) await document.fonts.ready;
       const canvas = canvasRef.current;
       if (!canvas) throw new Error("no_canvas");
@@ -64,7 +88,7 @@ export default function VisuelPage() {
       });
       const url = canvas.toDataURL("image/png");
       setPngUrl(url);
-      track("poster_generated", { has_photo: Boolean(photoFile) });
+      track("poster_generated", { has_photo: Boolean(photoImg) });
       setStep("result");
     } catch {
       setErrors({ global: "Une erreur est survenue. Réessayez." });
@@ -112,9 +136,32 @@ export default function VisuelPage() {
     handleDownload();
   }
 
+  if (status !== "ready") {
+    return (
+      <main className="bg-canvas min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center px-6">
+          <div className="h-12 w-12 rounded-full border-2 border-blue border-t-transparent animate-spin" />
+          <p className="font-serif text-xl">Vérification de votre accès…</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="bg-canvas">
       <div className="container-edge py-10 md:py-16 max-w-2xl mx-auto pb-28 lg:pb-16">
+        <div className="flex justify-center mb-6">
+          <div className="rounded-3xl bg-white px-6 py-4 shadow-soft ring-2 ring-blue/30">
+            <Image
+              src="/logo.png"
+              alt="JCI Experience"
+              width={240}
+              height={84}
+              priority
+              className="h-12 md:h-14 w-auto object-contain"
+            />
+          </div>
+        </div>
         <p className="eyebrow">Mon visuel</p>
         <h1 className="mt-4 font-serif text-3xl md:text-4xl text-balance">
           Créez votre visuel officiel
@@ -169,7 +216,22 @@ export default function VisuelPage() {
               </div>
 
               <Field label="Photo (optionnelle)">
-                <PhotoUpload onFile={setPhotoFile} />
+                <PhotoUpload
+                  onFile={(f) => {
+                    if (!f) {
+                      setPhotoImg(null);
+                      return;
+                    }
+                    loadImageFromFile(f)
+                      .then((img) => setPhotoImg(img))
+                      .catch(() => setPhotoImg(null));
+                  }}
+                />
+                {profile?.photo_url && (
+                  <p className="mt-1.5 text-xs text-ink/45">
+                    Pré-remplie depuis votre espace — vous pouvez la changer.
+                  </p>
+                )}
               </Field>
 
               <Field label="Votre message" error={errors.customMessage}>

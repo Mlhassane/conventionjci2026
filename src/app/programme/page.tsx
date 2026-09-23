@@ -3,6 +3,8 @@ import PageHeader from "@/components/PageHeader";
 import ProgramView from "./ProgramView";
 import { getProgram, getSpeakers } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProgrammePage() {
   const [sessions, speakers] = await Promise.all([getProgram(), getSpeakers()]);
 

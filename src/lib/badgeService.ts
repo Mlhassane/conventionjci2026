@@ -6,6 +6,11 @@ export type NewBadgeInput = {
   role: string;
   organization: string;
   city: string;
+  /**
+   * When the badge is generated from a logged-in participant espace, link it
+   * to the existing participant row instead of creating a duplicate.
+   */
+  participantId?: string;
 };
 
 /**
@@ -23,22 +28,27 @@ export async function createBadgeRecord(input: NewBadgeInput): Promise<{
   if (!supabase) return { uniqueCode, saved: false };
 
   try {
-    const { data: participant, error: participantError } = await supabase
-      .from("participants")
-      .insert({
-        name: input.name,
-        city: input.city || null,
-        organization: input.organization || null,
-        role: input.role,
-        is_public: true,
-      })
-      .select("id")
-      .single();
+    let participantId: string | null = input.participantId ?? null;
 
-    if (participantError) return { uniqueCode, saved: false };
+    if (!participantId) {
+      const { data: participant, error: participantError } = await supabase
+        .from("participants")
+        .insert({
+          name: input.name,
+          city: input.city || null,
+          organization: input.organization || null,
+          role: input.role,
+          is_public: true,
+        })
+        .select("id")
+        .single();
+
+      if (participantError) return { uniqueCode, saved: false };
+      participantId = participant?.id ?? null;
+    }
 
     const { error: badgeError } = await supabase.from("badges").insert({
-      participant_id: participant?.id ?? null,
+      participant_id: participantId,
       unique_code: uniqueCode,
       full_name: input.name,
       role: input.role,

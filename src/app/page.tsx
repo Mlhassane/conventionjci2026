@@ -1,6 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
 import Footer from "@/components/Footer";
-import StatCounter from "@/components/StatCounter";
 import {
   getEventSettings,
   getPartners,
@@ -10,6 +10,9 @@ import {
 } from "@/lib/data";
 import { formatDateRange, formatDayLabel } from "@/lib/date";
 import { SessionCategory } from "@/lib/types";
+import Reveal from "@/components/Reveal";
+
+export const dynamic = "force-dynamic";
 
 const CATEGORY_STYLE: Record<SessionCategory, string> = {
   "Cérémonie": "bg-blue/15 text-blue-dark",
@@ -17,7 +20,7 @@ const CATEGORY_STYLE: Record<SessionCategory, string> = {
   "Panel": "bg-ink/8 text-ink",
   "Networking": "bg-navy/10 text-navy",
   "Pause": "bg-ink/5 text-ink/50",
-  "Soirée": "bg-yellow/35 text-ink",
+  "Soirée": "bg-blue/20 text-blue-dark",
   "Statutaire": "bg-ink/8 text-ink",
 };
 
@@ -38,31 +41,58 @@ export default async function HomePage() {
   return (
     <main>
       {/* ============================ HERO ============================ */}
-      <section className="relative overflow-hidden">
-        {/* JCI Blue glow accents */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-40 -right-24 h-[480px] w-[480px] rounded-full bg-blue/20 blur-[110px]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute top-64 -left-40 h-[360px] w-[360px] rounded-full bg-navy/10 blur-[100px]"
-        />
+      <section className="w-full">
+        <div className="relative isolate overflow-hidden flex flex-col min-h-screen min-h-[100dvh] bg-ink">
+          <Image
+            src="/hero_image.png"
+            alt="Maradi, cœur du Niger"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(165deg, rgba(31,71,137,0.88) 0%, rgba(0,151,215,0.55) 45%, rgba(19,15,45,0.82) 100%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-48"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(19,15,45,0.75), transparent)",
+            }}
+          />
 
-        <div className="container-edge pt-12 md:pt-20 pb-14 md:pb-20 grid gap-12 md:grid-cols-2 md:items-center">
-          {/* Left — copy */}
-          <div>
-            <p className="animate-fade-up anim-delay-1 flex items-center gap-3 font-sans text-xs tracking-wide2 uppercase text-blue-dark">
-              <span aria-hidden className="h-px w-8 bg-blue" />
+          <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pt-28 md:pt-32 pb-16 md:pb-20 text-center text-paper">
+            <div className="animate-fade-up anim-delay-1 mb-6 rounded-3xl bg-white/95 px-6 py-4 shadow-[0_0_60px_rgba(0,151,215,0.45)] ring-2 ring-blue/50">
+              <Image
+                src="/logo.png"
+                alt="JCI Experience"
+                width={280}
+                height={96}
+                priority
+                className="h-14 md:h-16 w-auto object-contain"
+              />
+            </div>
+
+            <p className="animate-fade-up anim-delay-1 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/15 px-4 py-1.5 text-[11px] tracking-wide2 uppercase text-paper">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-paper" />
               {settings.event_name}
             </p>
 
-            <h1 className="animate-fade-up anim-delay-2 mt-6 font-serif text-[2.7rem] leading-[1.04] sm:text-6xl md:text-[4.5rem] text-balance">
+            <h1 className="animate-fade-up anim-delay-2 mt-7 max-w-3xl font-serif text-[2.6rem] leading-[1.05] sm:text-6xl md:text-[4.25rem] text-balance text-paper">
               {taglineParts.map((part, i) => (
                 <span key={part}>
                   {i > 0 && <br />}
                   {i === taglineParts.length - 1 ? (
-                    <span className="italic text-blue-dark">{part}.</span>
+                    <span className="italic underline decoration-white/40 underline-offset-8">
+                      {part}.
+                    </span>
                   ) : (
                     <>{part}.</>
                   )}
@@ -70,319 +100,377 @@ export default async function HomePage() {
               ))}
             </h1>
 
-            <div className="animate-fade-up anim-delay-3">
-              <div className="mt-7 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-line/15 bg-white px-4 py-2 text-xs font-medium">
-                  <CalendarIcon />
-                  {dateLabel}
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-line/15 bg-white px-4 py-2 text-xs font-medium">
-                  <PinIcon />
-                  {settings.location}
-                </span>
-              </div>
+            <p className="animate-fade-up anim-delay-3 mt-6 max-w-lg font-sans text-base md:text-lg leading-relaxed text-paper/90">
+              {settings.hero_text}
+            </p>
 
-              <p className="mt-6 max-w-md font-sans text-base text-ink/65 leading-relaxed">
-                {settings.hero_text}
-              </p>
-
-              <div className="mt-9 flex flex-col sm:flex-row gap-3">
-                <Link
-                  href="/badge"
-                  className="inline-flex justify-center items-center rounded-full bg-blue text-ink px-7 py-3.5 font-sans text-sm font-semibold hover:bg-navy hover:text-paper transition-colors"
-                >
-                  Créer mon badge
-                </Link>
-                <Link
-                  href="/visuel"
-                  className="inline-flex justify-center items-center rounded-full border border-ink/25 px-7 py-3.5 font-sans text-sm font-medium hover:border-ink hover:bg-ink hover:text-paper transition-colors"
-                >
-                  Créer mon visuel
-                </Link>
-                <Link
-                  href="/programme"
-                  className="inline-flex justify-center items-center px-2 py-3.5 font-sans text-sm font-medium text-blue-dark hover:underline underline-offset-4"
-                >
-                  Voir le programme →
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Right — badge mock visual */}
-          <div className="animate-fade-up anim-delay-4 relative mx-auto w-full max-w-[340px]">
-            <div
-              aria-hidden
-              className="absolute inset-0 translate-x-4 translate-y-4 rounded-xl2 bg-blue/15"
-            />
-            <div className="relative overflow-hidden rounded-xl2 bg-ink text-paper shadow-soft">
-              <div className="h-1.5 w-full bg-blue" />
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] tracking-wide2 uppercase text-blue">
-                    JCI Niger
-                  </p>
-                  <p className="text-[10px] tracking-wide2 uppercase text-paper/40">
-                    Badge digital
-                  </p>
-                </div>
-
-                <p className="mt-3 font-serif text-2xl">Convention 2026</p>
-                <p className="mt-1 text-xs text-paper/60">
-                  {dateLabel} · {settings.location.split(",")[0].trim()}
-                </p>
-
-                <div className="mt-6 flex items-center gap-4">
-                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-blue bg-white/5 font-serif text-lg text-blue">
-                    MS
-                  </span>
-                  <div>
-                    <p className="font-serif text-lg leading-tight">
-                      Mariama Souley
-                    </p>
-                    <p className="text-xs text-paper/55">
-                      Déléguée · JCI Niamey
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex items-end justify-between gap-4 border-t border-white/10 pt-5">
-                  <QrMock />
-                  <div className="text-right">
-                    <p className="text-sm font-medium tracking-wide2">
-                      JCI-2026-A7X2Q1
-                    </p>
-                    <p className="mt-1 text-[11px] text-blue">
-                      {settings.hashtag}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute -left-2 md:-left-6 bottom-5 rounded-full border border-line/10 bg-white px-4 py-2 text-xs font-medium shadow-soft">
-              Badge prêt en 30&nbsp;s ✓
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ======================= INFO STRIP ======================= */}
-      <div className="bg-blue text-ink">
-        <div className="container-edge flex flex-wrap items-center justify-center gap-x-5 gap-y-1 py-3 text-center text-[11px] font-semibold tracking-wide2 uppercase">
-          <span>{dateLabel}</span>
-          <span aria-hidden className="text-ink/40">
-            ●
-          </span>
-          <span>{settings.location}</span>
-          <span aria-hidden className="text-ink/40">
-            ●
-          </span>
-          <span>
-            {program.length} sessions
-          </span>
-          <span aria-hidden className="text-ink/40">
-            ●
-          </span>
-          <span>{settings.hashtag}</span>
-        </div>
-      </div>
-
-      {/* ========================= CHIFFRES ========================= */}
-      <section className="relative overflow-hidden bg-ink py-16 md:py-24">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-blue/15 blur-[80px]"
-        />
-        <div className="container-edge relative">
-          <p className="flex items-center gap-3 font-sans text-xs tracking-wide2 uppercase text-blue">
-            <span aria-hidden className="h-px w-8 bg-blue" />
-            En chiffres
-          </p>
-          <p className="mt-4 font-serif text-2xl md:text-3xl text-paper mb-10 md:mb-14">
-            La Convention en chiffres
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-0">
-            {[
-              { value: stats.participants, label: "Participants" },
-              { value: stats.posters, label: "Visuels générés" },
-              { value: stats.badges, label: "Badges générés" },
-              { value: stats.partners, label: "Partenaires" },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="md:px-7 md:first:pl-0 md:border-l md:border-white/10 md:first:border-l-0"
+            <div className="animate-fade-up anim-delay-4 mt-9 flex flex-col sm:flex-row items-center gap-3">
+              <Link
+                href="/badge"
+                className="group inline-flex items-center gap-2 rounded-full bg-paper text-ink px-7 py-3.5 text-sm font-semibold shadow-cta hover:bg-blue transition-colors"
               >
-                <StatCounter value={stat.value} label={stat.label} />
-              </div>
-            ))}
+                Créer mon badge
+                <span
+                  aria-hidden
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-paper text-xs transition-transform group-hover:translate-x-0.5"
+                >
+                  →
+                </span>
+              </Link>
+              <Link
+                href="/programme"
+                className="inline-flex items-center rounded-full border border-white/50 bg-white/15 backdrop-blur-sm px-7 py-3.5 text-sm font-medium text-paper hover:bg-paper hover:text-ink transition-colors"
+              >
+                Voir le programme
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative z-10 animate-fade-up anim-delay-4 px-6 pb-8 md:pb-10 flex flex-col items-center gap-3 text-center text-xs md:text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-paper/90">
+              <span>{dateLabel}</span>
+              <span aria-hidden className="text-paper/50">
+                ·
+              </span>
+              <span>{settings.location}</span>
+              <span aria-hidden className="text-paper/50">
+                ·
+              </span>
+              <span className="text-paper font-semibold">
+                {settings.hashtag}
+              </span>
+            </div>
+            <div aria-hidden className="flex items-center gap-1 text-paper">
+              ★★★★★
+              <span className="ml-2 text-paper/80 font-medium text-[11px]">
+                L&apos;expérience digitale officielle JCI
+              </span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ======================= EXPÉRIENCE ======================= */}
+      {/* ======================= LOGO STRIP ======================= */}
+      <section className="border-b border-line/8">
+        <div className="px-5 lg:px-[20%] py-7 md:py-9 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 md:gap-x-12 opacity-45">
+            {partners.slice(0, 8).map((partner) => (
+              <Link
+                key={partner.id}
+                href={`/partenaires/${partner.id}`}
+                className="font-sans text-[11px] md:text-xs tracking-wide2 uppercase text-ink/70 hover:text-blue-dark transition-colors"
+              >
+                {partner.name}
+              </Link>
+            ))}
+            {partners.length === 0 && (
+              <span className="font-sans text-[11px] tracking-wide2 uppercase text-ink/50">
+                Partenaires officiels · JCI Niger
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================= À PROPOS / BENTO ======================= */}
       <section className="py-16 md:py-24">
-        <div className="container-edge">
-          <div className="flex items-end justify-between gap-4 mb-9">
-            <div>
-              <p className="flex items-center gap-3 font-sans text-xs tracking-wide2 uppercase text-blue-dark">
-                <span aria-hidden className="h-px w-8 bg-blue" />
-                Expérience digitale
-              </p>
-              <h2 className="mt-4 font-serif text-2xl md:text-3xl">
-                Tout pour vivre la Convention
-              </h2>
-            </div>
-            <Link
-              href="/badge"
-              className="hidden sm:inline-flex shrink-0 pb-1 text-sm font-medium text-blue-dark hover:underline underline-offset-4"
-            >
-              Commencer →
-            </Link>
+        <div className="px-5 lg:px-[20%]">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="eyebrow eyebrow-center">À propos</p>
+            <h2 className="mt-5 font-serif text-3xl md:text-[2.75rem] leading-[1.12] text-balance">
+              La Convention qui connecte{" "}
+              <span className="text-blue-dark">leadership</span>, culture et{" "}
+              <span className="italic text-blue-dark">opportunités</span> à
+              Maradi.
+            </h2>
+            <p className="mt-5 text-sm md:text-base text-ink/60 leading-relaxed">
+              Deux jours pour apprendre, célébrer et faire grandir votre réseau
+              JCI — avec une expérience digitale pensée pour vous.
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-3 md:gap-4">
-            <PreviewCard
+          <div className="mt-12 grid gap-4 md:grid-cols-3 md:grid-rows-2 md:auto-rows-fr">
+            {/* Feature card — participants */}
+            <div className="relative overflow-hidden rounded-3xl md:col-span-2 md:row-span-2 bg-gradient-to-br from-navy via-ink to-[#0A3A6B] text-paper p-7 md:p-10 flex flex-col justify-between min-h-[280px] md:min-h-[380px] shadow-lift">
+              <div
+                aria-hidden
+                className="absolute -top-24 -right-16 h-64 w-64 rounded-full bg-blue/40 blur-3xl"
+              />
+              <div
+                aria-hidden
+                className="absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-blue/30 blur-3xl"
+              />
+              <div
+                aria-hidden
+                className="absolute top-0 right-0 h-full w-1.5 bg-gradient-to-b from-blue via-paper to-transparent"
+              />
+
+              <div className="relative">
+                <span className="inline-flex items-center gap-2 rounded-full border border-blue/40 bg-blue/15 px-3.5 py-1.5 text-[11px] tracking-wide2 uppercase text-blue">
+                  <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-blue" />
+                  Participants
+                </span>
+              </div>
+
+              <div className="relative mt-8">
+                <p className="font-serif text-6xl md:text-[5.5rem] leading-none tracking-tight">
+                  {stats.participants}
+                  <span className="text-blue">+</span>
+                </p>
+                <p className="mt-4 text-sm md:text-base text-paper/75 max-w-md leading-relaxed">
+                  Membres et invités réunis pour l&apos;édition 2026 de la
+                  Convention JCI Niger — le réseau qui fait vivre Maradi.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white/10 px-3.5 py-1.5 text-xs text-paper/85">
+                    9 — 10 octobre 2026
+                  </span>
+                  <span className="rounded-full bg-blue/20 px-3.5 py-1.5 text-xs text-blue">
+                    Maradi, Niger
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div className="group relative overflow-hidden rounded-3xl bg-white border border-line/10 p-6 md:p-7 flex flex-col justify-between min-h-[170px] shadow-card transition-all hover:-translate-y-1 hover:shadow-lift hover:border-blue/40">
+              <div
+                aria-hidden
+                className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-blue/10 blur-2xl transition-transform duration-500 group-hover:scale-125"
+              />
+              <div className="relative flex items-start justify-between">
+                <p className="text-[11px] tracking-wide2 uppercase text-ink/45">
+                  Badges générés
+                </p>
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue/10 text-blue-dark text-sm">
+                  ✓
+                </span>
+              </div>
+              <div className="relative mt-6">
+                <p className="font-serif text-5xl md:text-6xl leading-none">
+                  {stats.badges}
+                </p>
+                <p className="mt-2.5 text-xs text-ink/55 leading-relaxed">
+                  Identités digitales prêtes en 30 secondes.
+                </p>
+                <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-line/10">
+                  <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-blue to-blue-light" />
+                </div>
+              </div>
+            </div>
+
+            {/* Visuels */}
+            <div className="group relative overflow-hidden rounded-3xl bg-blue text-ink p-6 md:p-7 flex flex-col justify-between min-h-[170px] transition-all hover:-translate-y-1 shadow-card hover:shadow-lift">
+              <div
+                aria-hidden
+                className="absolute -bottom-12 -right-12 h-32 w-32 rounded-full bg-white/30 blur-2xl transition-transform duration-500 group-hover:scale-125"
+              />
+              <div className="relative flex items-start justify-between">
+                <p className="text-[11px] tracking-wide2 uppercase text-ink/70">
+                  Visuels générés
+                </p>
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-ink/10 text-ink text-sm">
+                  ✦
+                </span>
+              </div>
+              <div className="relative mt-6">
+                <p className="font-serif text-5xl md:text-6xl leading-none">
+                  {stats.posters}
+                  <span className="text-ink/40">+</span>
+                </p>
+                <p className="mt-2.5 text-xs text-ink/75 leading-relaxed">
+                  Affiches officielles partagées en un clic.
+                </p>
+                <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-ink/20">
+                  <div className="h-full w-3/4 rounded-full bg-ink" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================= EXPÉRIENCE / SERVICES ======================= */}
+      <section className="pb-16 md:pb-24">
+        <div className="px-5 lg:px-[20%]">
+          <div className="mx-auto max-w-xl text-center">
+            <p className="eyebrow eyebrow-center">Expérience digitale</p>
+            <h2 className="mt-5 font-serif text-3xl md:text-[2.5rem] leading-[1.15] text-balance">
+              Tout pour vivre la Convention
+            </h2>
+            <p className="mt-4 text-sm text-ink/60 leading-relaxed">
+              Badge, visuel, programme, annuaire — les outils officiels de
+              l&apos;édition 2026, au même endroit.
+            </p>
+            <div className="mt-7">
+              <Link
+                href="/badge"
+                className="group inline-flex items-center gap-2 rounded-full bg-ink text-paper px-6 py-3 text-sm font-medium hover:bg-blue hover:text-ink transition-colors"
+              >
+                Commencer
+                <span
+                  aria-hidden
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue text-ink text-xs"
+                >
+                  →
+                </span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ServiceCard
               href="/badge"
-              large
-              className="col-span-2 row-span-2 min-h-[240px] md:min-h-0"
+              icon={<BadgeGlyph />}
               title="Badge digital"
-              subtitle="Ton identité officielle pour la Convention"
-              tone="ink"
+              text="Ton identité officielle pour la Convention, générée en quelques secondes."
             />
-            <PreviewCard
+            <ServiceCard
               href="/visuel"
-              className="col-span-2 min-h-[150px] md:min-h-0"
+              icon={<SparkGlyph />}
               title="Visuel officiel"
-              subtitle="Affiche ta participation en un clic"
-              tone="blue"
+              text="Affiche ta participation et partage-la partout avec ton réseau."
             />
-            <PreviewCard
+            <ServiceCard
               href="/programme"
-              className="min-h-[150px] md:min-h-0"
+              icon={<CalGlyph />}
               title="Programme"
-              subtitle={`${formatDayLabel(settings.start_date)} — ${formatDayLabel(settings.end_date)}`}
-              tone="paper"
+              text={`${formatDayLabel(settings.start_date)} — ${formatDayLabel(
+                settings.end_date
+              )}`}
             />
-            <PreviewCard
-              href="/partenaires"
-              className="min-h-[150px] md:min-h-0"
-              title="Partenaires"
-              subtitle={`${partners.length} partenaires officiels`}
-              tone="navy"
-            />
-            <PreviewCard
+            <ServiceCard
               href="/intervenants"
-              className="col-span-2 min-h-[150px] md:min-h-0"
+              icon={<MicGlyph />}
               title="Intervenants"
-              subtitle={`${speakers.length} voix de l'édition 2026`}
-              tone="teal"
+              text={`${speakers.length} voix de l'édition 2026 à découvrir.`}
             />
-            <PreviewCard
-              href="/infos"
-              className="min-h-[150px] md:min-h-0"
-              title="Infos pratiques"
-              subtitle="Lieu, transport & hébergement"
-              tone="paper"
+            <ServiceCard
+              href="/partenaires"
+              icon={<HandGlyph />}
+              title="Partenaires"
+              text={`${partners.length} partenaires officiels aux côtés de JCI Niger.`}
             />
-            <PreviewCard
+            <ServiceCard
               href="/participants"
-              className="min-h-[150px] md:min-h-0"
+              icon={<PeopleGlyph />}
               title="Participants"
-              subtitle="Annuaire & networking"
-              tone="yellow"
+              text="Annuaire & networking pour trouver les bonnes personnes."
             />
           </div>
         </div>
       </section>
 
       {/* ======================= PROGRAMME ======================= */}
-      <section className="bg-blue/5 py-16 md:py-24">
-        <div className="container-edge">
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <div className="lg:sticky lg:top-28">
-              <p className="flex items-center gap-3 font-sans text-xs tracking-wide2 uppercase text-blue-dark">
-                <span aria-hidden className="h-px w-8 bg-blue" />
-                Au programme
-              </p>
-              <h2 className="mt-4 font-serif text-2xl md:text-3xl text-balance">
-                Deux jours pour apprendre, connecter et célébrer.
-              </h2>
-              <p className="mt-4 text-sm text-ink/60 leading-relaxed max-w-sm">
-                Cérémonies, panels, formations et networking — découvrez les
-                premières sessions de l&apos;édition 2026.
-              </p>
-              <Link
-                href="/programme"
-                className="mt-7 inline-flex items-center rounded-full bg-ink text-paper px-6 py-3 text-sm font-medium hover:bg-blue hover:text-ink transition-colors"
-              >
-                Voir tout le programme
-              </Link>
-            </div>
+      <section className="py-16 md:py-24">
+        <div className="px-5 lg:px-[20%]">
+          <Reveal className="mx-auto max-w-xl text-center">
+            <p className="eyebrow eyebrow-center">Au programme</p>
+            <h2 className="mt-5 font-serif text-3xl md:text-[2.5rem] leading-[1.15] text-balance">
+              Deux jours pour apprendre, connecter et célébrer.
+            </h2>
+            <p className="mt-4 text-sm text-ink/60 leading-relaxed">
+              Un aperçu des premières sessions de l&apos;édition 2026.
+            </p>
+          </Reveal>
 
-            <ul className="rounded-xl2 border border-line/10 bg-white divide-y divide-line/10 overflow-hidden">
-              {sessions.map((session) => (
-                <li
-                  key={session.id}
-                  className="flex items-start gap-4 md:gap-5 p-5 md:p-6 transition-colors hover:bg-blue/5"
+          <div className="mt-10 grid gap-3 md:gap-4 max-w-3xl mx-auto">
+            {sessions.map((session, i) => (
+              <Reveal key={session.id} delay={i * 0.07}>
+                <Link
+                  href="/programme"
+                  className="group relative flex items-stretch gap-0 rounded-2xl bg-white border border-line/10 overflow-hidden shadow-card transition-all hover:-translate-y-0.5 hover:border-blue/40 hover:shadow-lift"
                 >
-                  <div className="w-16 md:w-20 shrink-0">
-                    <p className="font-sans text-sm font-bold text-blue-dark">
-                      {session.start_time}
-                    </p>
-                    <p className="text-[11px] text-ink/45">
-                      {session.date === settings.start_date ? "Jour 1" : "Jour 2"}
-                    </p>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-serif text-base md:text-lg leading-snug">
+                {/* Left rail */}
+                <div className="flex w-20 md:w-28 shrink-0 flex-col items-center justify-center border-r border-line/8 bg-canvas px-2 py-5">
+                  <span className="font-sans text-base md:text-lg font-bold tracking-tight text-ink">
+                    {session.start_time}
+                  </span>
+                  <span className="mt-1 text-[10px] tracking-wide2 uppercase text-ink/40">
+                    {session.date === settings.start_date ? "J1" : "J2"}
+                  </span>
+                </div>
+
+                {/* Accent bar by category */}
+                <span
+                  aria-hidden
+                  className={`w-1 shrink-0 ${
+                    session.category === "Pause"
+                      ? "bg-line/15"
+                      : session.category === "Networking" ||
+                          session.category === "Panel" ||
+                          session.category === "Statutaire"
+                        ? "bg-navy"
+                        : session.category === "Formation"
+                          ? "bg-teal"
+                          : "bg-blue"
+                  }`}
+                />
+
+                <div className="flex flex-1 items-center justify-between gap-3 px-4 md:px-5 py-4 md:py-5 min-w-0">
+                  <div className="min-w-0">
+                    <p className="font-sans text-base md:text-lg font-semibold leading-snug text-ink group-hover:text-blue-dark transition-colors">
                       {session.title}
                     </p>
                     {session.location && (
-                      <p className="mt-1 text-xs text-ink/50">
-                        📍 {session.location}
+                      <p className="mt-1 flex items-center gap-1 text-xs text-ink/45">
+                        <PinTiny />
+                        {session.location}
                       </p>
                     )}
                   </div>
-                  <span
-                    className={`shrink-0 self-start text-[11px] rounded-full px-2.5 py-1 font-medium ${CATEGORY_STYLE[session.category]}`}
-                  >
-                    {session.category}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span
+                      className={`text-[11px] rounded-full px-2.5 py-1 font-medium ${CATEGORY_STYLE[session.category]}`}
+                    >
+                      {session.category}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="text-ink/25 transition-all group-hover:text-blue group-hover:translate-x-0.5"
+                    >
+                      →
+                    </span>
+                  </div>
+                </div>
+                </Link>
+              </Reveal>
+            ))}
           </div>
+
+          <Reveal delay={0.3} className="mt-8 text-center">
+            <Link
+              href="/programme"
+              className="group inline-flex items-center gap-2 rounded-full bg-ink text-paper px-7 py-3.5 text-sm font-medium hover:bg-blue hover:text-ink transition-colors"
+            >
+              Voir tout le programme
+              <span
+                aria-hidden
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue text-ink text-xs transition-transform group-hover:translate-x-0.5 group-hover:bg-paper"
+              >
+                →
+              </span>
+            </Link>
+          </Reveal>
         </div>
       </section>
 
       {/* ======================= INTERVENANTS ======================= */}
       <section className="py-16 md:py-24">
-        <div className="container-edge">
-          <div className="flex items-end justify-between gap-4 mb-9">
-            <div>
-              <p className="flex items-center gap-3 font-sans text-xs tracking-wide2 uppercase text-blue-dark">
-                <span aria-hidden className="h-px w-8 bg-blue" />
-                Intervenants
-              </p>
-              <h2 className="mt-4 font-serif text-2xl md:text-3xl">
-                Les voix de l&apos;édition 2026
-              </h2>
-            </div>
-            <Link
-              href="/intervenants"
-              className="hidden sm:inline-flex shrink-0 pb-1 text-sm font-medium text-blue-dark hover:underline underline-offset-4"
-            >
-              Tous les intervenants →
-            </Link>
+        <div className="px-5 lg:px-[20%]">
+          <div className="mx-auto max-w-xl text-center">
+            <p className="eyebrow eyebrow-center">Intervenants</p>
+            <h2 className="mt-5 font-serif text-3xl md:text-[2.5rem] text-balance">
+              Les voix de l&apos;édition 2026
+            </h2>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {featuredSpeakers.map((speaker) => (
               <Link
                 key={speaker.id}
                 href={`/intervenants/${speaker.id}`}
-                className="group rounded-xl2 border border-line/10 bg-white p-6 text-center transition-all hover:-translate-y-1 hover:border-blue/40 hover:shadow-soft"
+                className="group rounded-2xl border border-line/10 bg-white p-6 text-center transition-all hover:-translate-y-1 hover:border-blue/40 hover:shadow-lift"
               >
                 <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-blue/30 bg-blue/10 font-serif text-xl text-blue-dark">
                   {getInitials(speaker.name)}
@@ -404,7 +492,7 @@ export default async function HomePage() {
             ))}
           </div>
 
-          <div className="mt-6 text-center sm:hidden">
+          <div className="mt-8 text-center">
             <Link
               href="/intervenants"
               className="text-sm font-medium text-blue-dark hover:underline underline-offset-4"
@@ -417,15 +505,11 @@ export default async function HomePage() {
 
       {/* ======================= PARTENAIRES ======================= */}
       <section className="pb-16 md:pb-24">
-        <div className="container-edge">
-          <div className="rounded-xl2 border border-line/10 bg-white px-6 py-10 md:px-10 md:py-12">
-            <div className="text-center">
-              <p className="flex items-center justify-center gap-3 font-sans text-xs tracking-wide2 uppercase text-blue-dark">
-                <span aria-hidden className="h-px w-8 bg-blue" />
-                Partenaires
-                <span aria-hidden className="h-px w-8 bg-blue" />
-              </p>
-              <h2 className="mt-4 font-serif text-2xl md:text-3xl">
+        <div className="px-5 lg:px-[20%]">
+          <div className="rounded-2xl border border-line/10 bg-white px-6 py-10 md:px-10 md:py-12 shadow-card">
+            <div className="text-center max-w-lg mx-auto">
+              <p className="eyebrow eyebrow-center">Partenaires</p>
+              <h2 className="mt-5 font-serif text-2xl md:text-3xl">
                 Ils rendent la Convention possible
               </h2>
             </div>
@@ -435,13 +519,10 @@ export default async function HomePage() {
                 <Link
                   key={partner.id}
                   href={`/partenaires/${partner.id}`}
-                  className="group rounded-xl2 border border-line/12 px-5 py-4 md:px-7 md:py-5 text-center transition-all hover:-translate-y-0.5 hover:border-blue/50 hover:shadow-soft"
+                  className="group rounded-full border border-line/12 px-5 py-3 md:px-6 md:py-3.5 transition-all hover:-translate-y-0.5 hover:border-blue/50 hover:shadow-soft"
                 >
-                  <p className="font-serif text-base md:text-lg leading-tight">
+                  <p className="font-sans text-sm font-medium leading-tight">
                     {partner.name}
-                  </p>
-                  <p className="mt-1 text-[11px] text-ink/45 group-hover:text-blue-dark transition-colors">
-                    {partner.category}
                   </p>
                 </Link>
               ))}
@@ -460,35 +541,38 @@ export default async function HomePage() {
       </section>
 
       {/* ======================== CTA FINAL ======================== */}
-      <section className="container-edge">
-        <div className="relative overflow-hidden rounded-xl2 bg-navy text-paper px-6 py-12 md:px-14 md:py-16">
+      <section className="px-5 lg:px-[20%] pb-4">
+        <div className="relative overflow-hidden rounded-[1.75rem] md:rounded-[2.25rem] bg-ink text-paper px-6 py-14 md:px-14 md:py-20 text-center">
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-20 -right-16 h-72 w-72 rounded-full bg-blue/30 blur-[90px]"
+            className="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full bg-blue/30 blur-[90px]"
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-teal/20 blur-[80px]"
+            className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-blue/25 blur-[80px]"
           />
 
-          <div className="relative max-w-2xl">
-            <p className="flex items-center gap-3 font-sans text-xs tracking-wide2 uppercase text-blue">
-              <span aria-hidden className="h-px w-8 bg-blue" />
-              Rejoignez-nous
-            </p>
+          <div className="relative mx-auto max-w-2xl">
+            <p className="eyebrow eyebrow-center !text-blue">Rejoignez-nous</p>
             <h2 className="mt-5 font-serif text-3xl md:text-4xl leading-tight text-balance">
               Prêt pour la Convention&nbsp;?
             </h2>
-            <p className="mt-4 text-sm md:text-base text-paper/70 leading-relaxed max-w-lg">
+            <p className="mt-4 text-sm md:text-base text-paper/70 leading-relaxed max-w-lg mx-auto">
               Générez votre badge digital et votre visuel officiel en quelques
               secondes, puis partagez-les avec votre réseau.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
               <Link
                 href="/badge"
-                className="inline-flex justify-center items-center rounded-full bg-blue text-ink px-7 py-3.5 text-sm font-semibold hover:bg-paper hover:text-ink transition-colors"
+                className="group inline-flex justify-center items-center gap-2 rounded-full bg-blue text-ink px-7 py-3.5 text-sm font-semibold hover:bg-paper transition-colors"
               >
                 Créer mon badge
+                <span
+                  aria-hidden
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-paper text-xs transition-transform group-hover:translate-x-0.5"
+                >
+                  →
+                </span>
               </Link>
               <Link
                 href="/visuel"
@@ -511,58 +595,30 @@ export default async function HomePage() {
 
 /* ------------------------------ pieces ------------------------------ */
 
-function PreviewCard({
+function ServiceCard({
   href,
+  icon,
   title,
-  subtitle,
-  tone,
-  className = "",
-  large,
+  text,
 }: {
   href: string;
+  icon: React.ReactNode;
   title: string;
-  subtitle: string;
-  tone: "ink" | "blue" | "paper" | "navy" | "teal" | "yellow";
-  className?: string;
-  large?: boolean;
+  text: string;
 }) {
-  const tones: Record<string, string> = {
-    ink: "bg-ink text-paper",
-    blue: "bg-blue text-ink",
-    paper: "bg-white text-ink border border-line/10",
-    navy: "bg-navy text-paper",
-    teal: "bg-teal text-ink",
-    yellow: "bg-yellow text-ink",
-  };
   return (
     <Link
       href={href}
-      className={`group relative overflow-hidden rounded-xl2 p-5 flex h-full flex-col justify-end shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift ${className} ${tones[tone]}`}
+      className="group rounded-2xl bg-white border border-line/10 p-6 flex flex-col shadow-card transition-all hover:-translate-y-1 hover:border-blue/40 hover:shadow-lift"
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-white/10 blur-2xl transition-transform duration-500 group-hover:scale-125"
-      />
-      <span
-        aria-hidden
-        className="absolute top-4 right-4 text-lg opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0"
-      >
-        ↗
+      <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue text-ink transition-transform group-hover:scale-105">
+        {icon}
       </span>
-      <p
-        className={`relative font-serif leading-tight ${
-          large ? "text-2xl md:text-3xl" : "text-lg"
-        }`}
-      >
-        {title}
-      </p>
-      <p
-        className={`relative mt-1 font-sans opacity-70 ${
-          large ? "text-sm" : "text-xs"
-        }`}
-      >
-        {subtitle}
-      </p>
+      <p className="mt-5 font-serif text-xl leading-tight">{title}</p>
+      <p className="mt-2 text-sm text-ink/55 leading-relaxed flex-1">{text}</p>
+      <span className="mt-5 text-sm font-medium text-blue-dark">
+        Ouvrir <span aria-hidden>→</span>
+      </span>
     </Link>
   );
 }
@@ -576,14 +632,62 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function CalendarIcon() {
+function PinTiny() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-3.5 w-3.5 text-blue-dark"
-      aria-hidden
-    >
+    <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3 shrink-0" aria-hidden>
+      <path
+        d="M12 21s7-5.1 7-11a7 7 0 1 0-14 0c0 5.9 7 11 7 11Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function BadgeGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+      <rect
+        x="5"
+        y="4"
+        width="14"
+        height="17"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M8.5 17c.7-1.6 2-2.4 3.5-2.4s2.8.8 3.5 2.4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function SparkGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+      <path
+        d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9L18 15Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function CalGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
       <rect
         x="4"
         y="5.5"
@@ -603,66 +707,53 @@ function CalendarIcon() {
   );
 }
 
-function PinIcon() {
+function MicGlyph() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-3.5 w-3.5 text-blue-dark"
-      aria-hidden
-    >
-      <path
-        d="M12 21s7-5.1 7-11a7 7 0 1 0-14 0c0 5.9 7 11 7 11Z"
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+      <rect
+        x="9"
+        y="3"
+        width="6"
+        height="11"
+        rx="3"
         stroke="currentColor"
         strokeWidth="1.6"
       />
-      <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-function QrMock() {
+function HandGlyph() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="h-14 w-14 text-paper"
-      aria-hidden
-      fill="currentColor"
-    >
-      {/* finder patterns */}
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
       <path
-        d="M4 12a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v16a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V12Zm8 4a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4v-8Z"
-        fill="none"
+        d="M8 12V6.5a1.5 1.5 0 1 1 3 0V11m0-4.5v-1a1.5 1.5 0 1 1 3 0V11m0-3.5a1.5 1.5 0 1 1 3 0V13c0 4-2.5 7-6 7s-6-2.5-6-6v-3.5a1.5 1.5 0 1 1 3 0"
         stroke="currentColor"
-        strokeWidth="7"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function PeopleGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+      <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="17" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.6" />
       <path
-        d="M64 12a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v16a8 8 0 0 1-8 8H72a8 8 0 0 1-8-8V12Zm8 4a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4v-8Z"
-        fill="none"
+        d="M3.5 19c.7-3 2.8-4.5 5.5-4.5s4.8 1.5 5.5 4.5M14 14.5c2.2.2 3.8 1.5 4.5 4"
         stroke="currentColor"
-        strokeWidth="7"
+        strokeWidth="1.6"
+        strokeLinecap="round"
       />
-      <path
-        d="M4 64a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v16a8 8 0 0 1-8 8H12a8 8 0 0 1-8-8V64Zm8 4a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4v-8Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="7"
-      />
-      {/* data dots */}
-      <rect x="44" y="4" width="8" height="8" />
-      <rect x="52" y="20" width="8" height="8" />
-      <rect x="44" y="36" width="8" height="8" />
-      <rect x="60" y="44" width="8" height="8" />
-      <rect x="76" y="44" width="8" height="8" />
-      <rect x="44" y="60" width="8" height="8" />
-      <rect x="60" y="68" width="8" height="8" />
-      <rect x="76" y="76" width="8" height="8" />
-      <rect x="44" y="84" width="8" height="8" />
-      <rect x="20" y="44" width="8" height="8" />
-      <rect x="4" y="48" width="8" height="8" />
-      <rect x="28" y="56" width="8" height="8" />
-      <rect x="92" y="60" width="8" height="8" />
-      <rect x="60" y="92" width="8" height="8" />
     </svg>
   );
 }

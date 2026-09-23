@@ -5,27 +5,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Primary brand colours (JCI Brand Guidelines)
         ink: "#130F2D",        // JCI Black
         paper: "#FFFFFF",      // JCI White
         blue: {
-          DEFAULT: "#0097D7",  // JCI Blue (primary brand colour)
+          DEFAULT: "#0097D7",  // JCI Blue
           light: "#33B5E8",
           dark: "#0077AD",     // accessible shade for small text on white
         },
+        // Secondary brand colours — use sparingly
         navy: "#1F4789",       // JCI Navy
-        yellow: "#EFC40F",     // JCI Yellow
+        yellow: "#EFC40F",     // JCI Yellow (accent only)
         teal: {
           DEFAULT: "#57BCBC",  // JCI Teal
-          dark: "#267878",     // accessible shade for small text on white
+          dark: "#267878",
         },
-        danger: "#B3202A",     // semantic: errors / destructive
-        success: "#1C6B3C",    // semantic: success / WhatsApp
-        canvas: "#F5F8FB",     // SaaS app background
+        // Semantic / app (non-brand)
+        danger: "#B3202A",
+        success: "#1C6B3C",
+        canvas: "#F5F8FB",
         line: "#130F2D",
       },
       fontFamily: {
-        serif: ["var(--font-fraunces)", "Georgia", "serif"],
-        sans: ["var(--font-manrope)", "system-ui", "sans-serif"],
+        // Primary: Plus Jakarta Sans (headings + body)
+        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        serif: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        // Secondary: Arvo — large quotes / editorial callouts only
+        quote: ["var(--font-arvo)", "Georgia", "serif"],
       },
       borderRadius: {
         xl2: "1.25rem",

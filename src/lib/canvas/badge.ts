@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { sansFont } from "./fonts";
 
 export type BadgeData = {
   name: string;
@@ -60,17 +61,17 @@ export async function drawBadge(canvas: HTMLCanvasElement, data: BadgeData) {
 
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.blue;
-  ctx.font = "600 30px Manrope, sans-serif";
+  ctx.font = sansFont(30, 600);
   ctx.letterSpacing = "5px";
   ctx.fillText("JCI NIGER", WIDTH / 2, 100);
   ctx.letterSpacing = "0px";
 
   ctx.fillStyle = COLORS.paper;
-  ctx.font = "600 66px Fraunces, Georgia, serif";
+  ctx.font = sansFont(66, 600);
   ctx.fillText("CONVENTION 2026", WIDTH / 2, 175);
 
   ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.font = "500 26px Manrope, sans-serif";
+  ctx.font = sansFont(26, 500);
   ctx.fillText(
     `${data.eventDateLabel} · ${data.location.toUpperCase()}`,
     WIDTH / 2,
@@ -100,7 +101,7 @@ export async function drawBadge(canvas: HTMLCanvasElement, data: BadgeData) {
     ctx.fillStyle = COLORS.ink;
     ctx.fillRect(WIDTH / 2 - photoRadius, photoCenterY - photoRadius, photoRadius * 2, photoRadius * 2);
     ctx.fillStyle = COLORS.blue;
-    ctx.font = "600 90px Manrope, sans-serif";
+    ctx.font = sansFont(90, 600);
     ctx.textBaseline = "middle";
     ctx.fillText(data.name ? data.name.charAt(0).toUpperCase() : "J", WIDTH / 2, photoCenterY + 8);
     ctx.textBaseline = "alphabetic";
@@ -115,12 +116,12 @@ export async function drawBadge(canvas: HTMLCanvasElement, data: BadgeData) {
 
   // Name
   ctx.fillStyle = COLORS.ink;
-  ctx.font = "600 54px Fraunces, Georgia, serif";
+  ctx.font = sansFont(54, 600);
   ctx.fillText(data.name || "Votre nom", WIDTH / 2, photoCenterY + 220);
 
   // Role badge pill
   const pillY = photoCenterY + 265;
-  ctx.font = "600 26px Manrope, sans-serif";
+  ctx.font = sansFont(26, 600);
   const roleText = data.role.toUpperCase();
   const pillWidth = ctx.measureText(roleText).width + 64;
   roundedRectPath(ctx, WIDTH / 2 - pillWidth / 2, pillY - 34, pillWidth, 52, 26);
@@ -131,7 +132,7 @@ export async function drawBadge(canvas: HTMLCanvasElement, data: BadgeData) {
 
   // Organization / city
   ctx.fillStyle = "#3D3859";
-  ctx.font = "500 28px Manrope, sans-serif";
+  ctx.font = sansFont(28, 500);
   const meta = [data.organization, data.city].filter(Boolean).join(" · ");
   ctx.fillText(meta || "Local JCI · Ville", WIDTH / 2, pillY + 60);
 
@@ -156,11 +157,11 @@ export async function drawBadge(canvas: HTMLCanvasElement, data: BadgeData) {
 
   // Unique code
   ctx.fillStyle = COLORS.ink;
-  ctx.font = "600 30px Manrope, sans-serif";
+  ctx.font = sansFont(30, 600);
   ctx.fillText(data.uniqueCode, WIDTH / 2, qrY + qrSize + 50);
 
   ctx.fillStyle = "#8B87A0";
-  ctx.font = "400 20px Manrope, sans-serif";
+  ctx.font = sansFont(20, 400);
   ctx.fillText("Scannez pour vérifier ce badge", WIDTH / 2, qrY + qrSize + 84);
 }
 

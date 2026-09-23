@@ -5,6 +5,8 @@ import EmptyState from "@/components/EmptyState";
 import { getPartners } from "@/lib/data";
 import { PartnerCategory } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 const CATEGORY_ORDER: PartnerCategory[] = [
   "Partenaire officiel",
   "Partenaire principal",

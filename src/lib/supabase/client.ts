@@ -15,6 +15,12 @@ export function getSupabaseClient(): SupabaseClient | null {
   if (!client) {
     client = createClient(url as string, anonKey as string, {
       auth: { persistSession: true, autoRefreshToken: true },
+      global: {
+        // Never let Next.js Data Cache freeze Supabase responses —
+        // admin edits must show up on the public site immediately.
+        fetch: (input, init) =>
+          fetch(input, { ...init, cache: "no-store" } as RequestInit),
+      },
     });
   }
   return client;

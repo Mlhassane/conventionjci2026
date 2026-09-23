@@ -15,8 +15,8 @@ export default function Footer() {
       {/* JCI brand stripe */}
       <div aria-hidden className="flex">
         <div className="h-1 w-1/2 bg-blue" />
-        <div className="h-1 w-1/6 bg-yellow" />
-        <div className="h-1 w-1/3 bg-teal" />
+        <div className="h-1 w-1/4 bg-paper" />
+        <div className="h-1 w-1/4 bg-blue/50" />
       </div>
 
       <div className="container-edge py-14 grid gap-10 md:grid-cols-3">

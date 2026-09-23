@@ -83,6 +83,17 @@ export type Speaker = {
   created_at: string;
 };
 
+export type Official = {
+  id: string;
+  name: string;
+  title: string | null;
+  organization: string | null;
+  photo_url: string | null;
+  display_order: number;
+  is_visible: boolean;
+  created_at: string;
+};
+
 export type SessionCategory =
   | "Cérémonie"
   | "Formation"

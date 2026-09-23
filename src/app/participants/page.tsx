@@ -3,6 +3,8 @@ import PageHeader from "@/components/PageHeader";
 import ParticipantsView from "./ParticipantsView";
 import { getPublicParticipants } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function ParticipantsPage() {
   const participants = await getPublicParticipants();
 
