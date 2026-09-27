@@ -1,0 +1,3 @@
+-- Content seeds live in the timestamped migrations under supabase/migrations/.
+-- This file is intentionally empty so `supabase db reset` can use the configured
+-- seed path without failing when no additional local seed is required.

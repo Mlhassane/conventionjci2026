@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useTable } from "@/lib/admin/useTable";
+import { uploadAdminImage } from "@/lib/admin/uploadImage";
+import ImageUpload from "@/components/form/ImageUpload";
 import { Official } from "@/lib/types";
 
 const EMPTY: Partial<Official> = {
@@ -19,19 +21,39 @@ export default function AdminOfficialsPage() {
     "display_order"
   );
   const [form, setForm] = useState<Partial<Official> | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  async function handlePhotoFile(file: File) {
+    setFormError(null);
+    setUploading(true);
+    const name = (form?.name ?? "official").trim().toLowerCase().replace(/\s+/g, "-");
+    const url = await uploadAdminImage("branding", `officials/${name || "official"}`, file);
+    setUploading(false);
+    if (!url) {
+      setFormError("Échec de l’envoi de la photo. Réessayez.");
+      return;
+    }
+    setForm((current) => (current ? { ...current, photo_url: url } : current));
+  }
 
   async function handleSave() {
-    if (!form) return;
-    if (!form.name?.trim()) return;
-    if (form.id) {
-      await update(form.id, {
-        ...form,
-        display_order: form.display_order ?? rows.length,
-      });
-    } else {
-      await create({ ...form, display_order: rows.length });
+    if (!form || uploading) return;
+    if (!form.name?.trim()) {
+      setFormError("Le nom est obligatoire.");
+      return;
     }
-    setForm(null);
+
+    setFormError(null);
+    const ok = form.id
+      ? await update(form.id, {
+          ...form,
+          display_order: form.display_order ?? rows.length,
+        })
+      : await create({ ...form, display_order: rows.length });
+
+    if (ok) setForm(null);
+    else setFormError("Une erreur est survenue. Réessayez.");
   }
 
   return (
@@ -46,7 +68,10 @@ export default function AdminOfficialsPage() {
           </p>
         </div>
         <button
-          onClick={() => setForm(EMPTY)}
+          onClick={() => {
+            setFormError(null);
+            setForm(EMPTY);
+          }}
           className="btn btn-dark btn-sm"
         >
           Ajouter un officiel
@@ -57,17 +82,36 @@ export default function AdminOfficialsPage() {
 
       {form && (
         <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4 shadow-card">
+          {formError && <p className="text-sm text-danger">{formError}</p>}
           <div className="grid sm:grid-cols-2 gap-4">
             <TextInput label="Nom complet *" value={form.name ?? ""} onChange={(v) => setForm({ ...form, name: v })} />
             <TextInput label="Fonction / titre" value={form.title ?? ""} onChange={(v) => setForm({ ...form, title: v })} />
             <TextInput label="Organisation" value={form.organization ?? ""} onChange={(v) => setForm({ ...form, organization: v })} />
-            <TextInput label="Photo (URL)" value={form.photo_url ?? ""} onChange={(v) => setForm({ ...form, photo_url: v })} />
+            <div>
+              <label className="block text-xs text-ink/50 mb-1.5">Photo</label>
+              <ImageUpload
+                onFile={handlePhotoFile}
+                currentUrl={form.photo_url}
+                error={uploading ? "Envoi en cours…" : null}
+                shape="circle"
+                label="Téléverser la photo"
+                hint="JPG ou PNG, 8 Mo max"
+              />
+            </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleSave} className="btn btn-primary btn-sm">
-              Enregistrer
+            <button
+              onClick={handleSave}
+              disabled={uploading}
+              className="btn btn-primary btn-sm"
+            >
+              {uploading ? "Envoi…" : "Enregistrer"}
             </button>
-            <button onClick={() => setForm(null)} className="btn btn-secondary btn-sm">
+            <button
+              onClick={() => setForm(null)}
+              disabled={uploading}
+              className="btn btn-secondary btn-sm"
+            >
               Annuler
             </button>
           </div>

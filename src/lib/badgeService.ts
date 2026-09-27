@@ -6,6 +6,8 @@ export type NewBadgeInput = {
   role: string;
   organization: string;
   city: string;
+  /** Public URL of the participant photo, when one is already available. */
+  photoUrl?: string;
   /**
    * When the badge is generated from a logged-in participant espace, link it
    * to the existing participant row instead of creating a duplicate.
@@ -54,6 +56,7 @@ export async function createBadgeRecord(input: NewBadgeInput): Promise<{
       role: input.role,
       organization: input.organization || null,
       city: input.city || null,
+      photo_url: input.photoUrl || null,
       status: "active",
     });
 

@@ -34,15 +34,28 @@ export default function AdminProgrammePage() {
   );
   const { rows: speakers } = useTable<Speaker>("speakers", "display_order");
   const [form, setForm] = useState<Partial<ProgramSession> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   async function handleSave() {
-    if (!form) return;
-    if (form.id) {
-      await update(form.id, form);
-    } else {
-      await create({ ...form, display_order: rows.length });
+    if (!form || saving) return;
+    if (!form.date || !form.start_time || !form.title?.trim()) {
+      setFormError("La date, l'heure de début et le titre sont obligatoires.");
+      return;
     }
-    setForm(null);
+    if (form.end_time && form.end_time <= form.start_time) {
+      setFormError("L'heure de fin doit être après l'heure de début.");
+      return;
+    }
+
+    setSaving(true);
+    setFormError(null);
+    const ok = form.id
+      ? await update(form.id, form)
+      : await create({ ...form, display_order: rows.length });
+    setSaving(false);
+    if (ok) setForm(null);
+    else setFormError("Une erreur est survenue. Réessayez.");
   }
 
   return (
@@ -53,7 +66,10 @@ export default function AdminProgrammePage() {
           <h1 className="mt-4 font-serif text-3xl">Programme</h1>
         </div>
         <button
-          onClick={() => setForm(EMPTY)}
+          onClick={() => {
+            setFormError(null);
+            setForm(EMPTY);
+          }}
           className="btn btn-dark btn-sm"
         >
           Ajouter une session
@@ -64,6 +80,7 @@ export default function AdminProgrammePage() {
 
       {form && (
         <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4">
+          {formError && <p className="text-sm text-danger">{formError}</p>}
           <div className="grid sm:grid-cols-3 gap-4">
             <TextInput type="date" label="Date" value={form.date ?? ""} onChange={(v) => setForm({ ...form, date: v })} />
             <TextInput type="time" label="Heure de début" value={form.start_time ?? ""} onChange={(v) => setForm({ ...form, start_time: v })} />
@@ -96,10 +113,18 @@ export default function AdminProgrammePage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleSave} className="btn btn-primary btn-sm">
-              Enregistrer
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="btn btn-primary btn-sm"
+            >
+              {saving ? "Enregistrement…" : "Enregistrer"}
             </button>
-            <button onClick={() => setForm(null)} className="btn btn-secondary btn-sm">
+            <button
+              onClick={() => setForm(null)}
+              disabled={saving}
+              className="btn btn-secondary btn-sm"
+            >
               Annuler
             </button>
           </div>

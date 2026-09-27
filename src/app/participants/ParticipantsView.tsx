@@ -85,7 +85,10 @@ export default function ParticipantsView({
                 )}
               </div>
               <p className="mt-3 text-sm font-medium">{p.name}</p>
-              <p className="text-xs text-ink/45 mt-0.5">{p.city}</p>
+              {p.organization && (
+                <p className="mt-0.5 text-xs text-blue-dark">{p.organization}</p>
+              )}
+              {p.city && <p className="text-xs text-ink/45 mt-0.5">{p.city}</p>}
               {p.role && (
                 <span className="mt-2 inline-block rounded-full bg-blue/10 px-2.5 py-0.5 text-[11px] font-medium text-blue-dark">
                   {p.role}

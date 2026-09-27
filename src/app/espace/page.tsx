@@ -26,7 +26,10 @@ export default function EspaceLoginPage() {
 function EspaceLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/espace/mon-espace";
+  const requestedNext = searchParams.get("next");
+  const next = isSafeInternalPath(requestedNext)
+    ? requestedNext
+    : "/espace/mon-espace";
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -205,5 +208,14 @@ function EspaceLoginForm() {
         )}
       </div>
     </main>
+  );
+}
+
+function isSafeInternalPath(value: string | null): value is string {
+  return Boolean(
+    value &&
+      value.startsWith("/") &&
+      !value.startsWith("//") &&
+      !value.includes("\\")
   );
 }

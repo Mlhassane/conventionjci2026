@@ -26,14 +26,14 @@ npm run dev
 ## 2. Connect Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor**, paste the entire contents of `supabase/schema.sql`, and run it. This creates every table, Row Level Security policy, storage bucket, and seeds `event_settings` + starter speakers/practical info.
-3. Open **Authentication → Users** and create at least one admin user (email + password). Anyone who can log in is treated as an administrator — there's no separate roles table in this MVP, so only create accounts for trusted organizers.
+2. Apply `supabase/schema.sql` **and then every file in `supabase/migrations/` in timestamp order**. `schema.sql` is the initial schema; later migrations add participant access, the admin link, officials and the restricted admin policies.
+3. Open **Authentication → Users** and create the admin user whose email is linked to the admin participant row. Public sign-ups should be disabled or restricted.
 4. Copy the Project URL and `anon` public key into `.env.local`.
 5. Restart `npm run dev`. The homepage stats, program, speakers, partners, participants and admin dashboard will now read live data; `/admin` login will work.
 
 ### Storage buckets
 
-The schema creates six public buckets: `photos`, `posters`, `badges`, `partners`, `speakers`, `branding`. Public users can upload to `photos`/`posters`/`badges` (poster & badge generation flows); only authenticated admins can write to `partners`, `speakers`, and `branding` (logos). The current poster/badge generators keep everything client-side (canvas → downloadable PNG) and don't upload to Storage by default — the buckets and policies are ready if you want to persist generated visuals server-side or let admins upload partner/speaker photos and branding assets from the dashboard.
+The schema creates six public buckets: `photos`, `posters`, `badges`, `partners`, `speakers`, `branding`. Public users can upload participant photos to `photos`; authenticated linked admins can write to the content and branding buckets. The poster and badge generators currently keep the generated PNG client-side (canvas → downloadable PNG); persisting generated visuals in Storage is a follow-up.
 
 ---
 
@@ -52,8 +52,10 @@ src/
     participants/                Participant directory (search/filter)
     infos/                       Practical information
     admin/                       Login (/admin) + protected dashboard
-      (protected)/               Route group: dashboard, partners, speakers,
-                                  programme, infos, settings, analytics
+      (protected)/               Route group: dashboard, participants, badges,
+                                  partners, speakers, officials, programme,
+                                  infos, analytics, settings
+    espace/                      Participant code login + participant space
   components/                    Nav, BottomNav, Footer, form fields, admin shell
   lib/
     canvas/                      Poster & badge PNG generation (Canvas API + QR)
@@ -80,7 +82,7 @@ All of this is defined once in `tailwind.config.ts` and `src/app/globals.css` �
 
 ## 5. Editable content — nothing is hard-coded
 
-Every piece of event-specific content lives in Supabase and is editable from `/admin`:
+Most event-specific content lives in Supabase and is editable from `/admin`. The generator templates and a few labels still contain fixed event branding and should be made fully dynamic before a future edition:
 
 | What | Table | Admin page |
 |---|---|---|
@@ -89,18 +91,19 @@ Every piece of event-specific content lives in Supabase and is editable from `/a
 | Speakers | `speakers` | `/admin/speakers` |
 | Program sessions | `program_sessions` | `/admin/programme` |
 | Practical information | `practical_information` | `/admin/infos` |
-| Participants & badges | `participants`, `badges` | created by the public flows; visibility/status manageable via Supabase Table Editor (dedicated UI can be added later) |
+| Participants & badges | `participants`, `badges` | `/admin/participants`, `/admin/badges` |
+| Event officials | `officials` | `/admin/officials` |
 
 ---
 
 ## 6. Poster & badge generation
 
-Both `/visuel` and `/badge` are fully client-side Canvas API generators (no server round-trip needed to produce the PNG), so they work well on low-bandwidth mobile connections and finish in a few seconds:
+Both `/visuel` and `/badge` are Canvas API generators that run in the browser. They require a participant session obtained from `/espace` with the convention code and full name:
 
 - `/visuel` draws a 1080×1350 vertical poster with the participant's photo, name, city/organization, and a chosen or custom message, branded with the Convention identity and `#MaConventionJCI2026`.
-- `/badge` draws a 1080×1600 badge with a unique code (`JCI-2026-XXXXXX`) and an embedded QR code linking to `/badge/verify/[code]`. When Supabase is connected, generating a badge also creates a `participants` row and a `badges` row so the QR code resolves to real, verifiable public data (name, role, organization, city — no private contact info is ever exposed).
+- `/badge` draws a 1080×1600 badge with a unique code (`JCI-2026-XXXXXX`) and an embedded QR code linking to `/badge/verify/[code]`. The badge is linked to the authenticated participant record when Supabase is available.
 
-Both flows track `*_generated`, `*_downloaded`, `whatsapp_share_clicked`, and `poster_shared` events to `analytics_events`, visible in `/admin/analytics`.
+The PNG generation itself is client-side and does not require a server round-trip. Analytics events are written to Supabase when the project is configured.
 
 ---
 
@@ -114,7 +117,7 @@ Any Next.js host works (Vercel is the simplest). Set the two `NEXT_PUBLIC_SUPABA
 
 Per the brief's own priorities, the following were deferred so the core experience (homepage, poster, badge, program, partners, speakers, practical info, admin) ships first and stays simple:
 
-- Photo/logo upload directly to Supabase Storage from the admin UI (buckets & policies are ready; wiring the upload widgets is a follow-up)
-- Drag-and-drop reordering in admin lists (display_order is editable via the field, not yet drag-and-drop)
-- A dedicated admin UI for participants/badges (manageable via Supabase Table Editor today)
+- Persisting generated poster/badge PNGs in Storage (the download/share flow works today)
+- Drag-and-drop reordering in admin lists (display_order is editable, but not yet drag-and-drop)
 - Social wall / advanced participant social features
+- Automated transactional email/SMS and payment integration

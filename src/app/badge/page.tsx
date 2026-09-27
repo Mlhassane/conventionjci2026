@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import PhotoUpload from "@/components/form/PhotoUpload";
+import Confetti from "@/components/Confetti";
 import { drawBadge } from "@/lib/canvas/badge";
 import {
   loadImageFromFile,
@@ -77,6 +78,7 @@ export default function BadgePage() {
         role,
         organization: organization.trim(),
         city: city.trim(),
+        photoUrl: profile?.photo_url ?? undefined,
         participantId: participantId ?? undefined,
       });
 
@@ -156,6 +158,7 @@ export default function BadgePage() {
 
   return (
     <main className="bg-canvas">
+      <Confetti active={step === "result"} />
       <div className="container-edge py-10 md:py-16 max-w-2xl mx-auto pb-28 lg:pb-16">
         <p className="eyebrow">Mon badge</p>
         <h1 className="mt-4 font-serif text-3xl md:text-4xl text-balance">

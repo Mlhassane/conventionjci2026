@@ -106,10 +106,10 @@ export default async function HomePage() {
 
             <div className="animate-fade-up anim-delay-4 mt-9 flex flex-col sm:flex-row items-center gap-3">
               <Link
-                href="/badge"
+                href="/j-y-seri"
                 className="group inline-flex items-center gap-2 rounded-full bg-paper text-ink px-7 py-3.5 text-sm font-semibold shadow-cta hover:bg-blue transition-colors"
               >
-                Créer mon badge
+                J’y serai
                 <span
                   aria-hidden
                   className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-paper text-xs transition-transform group-hover:translate-x-0.5"
@@ -304,7 +304,7 @@ export default async function HomePage() {
             </p>
             <div className="mt-7">
               <Link
-                href="/badge"
+                href="/j-y-seri"
                 className="group inline-flex items-center gap-2 rounded-full bg-ink text-paper px-6 py-3 text-sm font-medium hover:bg-blue hover:text-ink transition-colors"
               >
                 Commencer
@@ -558,15 +558,15 @@ export default async function HomePage() {
               Prêt pour la Convention&nbsp;?
             </h2>
             <p className="mt-4 text-sm md:text-base text-paper/70 leading-relaxed max-w-lg mx-auto">
-              Générez votre badge digital et votre visuel officiel en quelques
-              secondes, puis partagez-les avec votre réseau.
+              Confirmez votre participation à la Convention et portrayez
+              fièrement votre engagement auprès de votre réseau.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
               <Link
-                href="/badge"
+                href="/j-y-seri"
                 className="group inline-flex justify-center items-center gap-2 rounded-full bg-blue text-ink px-7 py-3.5 text-sm font-semibold hover:bg-paper transition-colors"
               >
-                Créer mon badge
+                J’y serai
                 <span
                   aria-hidden
                   className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-paper text-xs transition-transform group-hover:translate-x-0.5"

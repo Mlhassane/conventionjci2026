@@ -19,17 +19,51 @@ export default function ProtectedAdminLayout({
       return;
     }
     const supabase = getSupabaseClient();
-    supabase?.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setStatus("ok");
-      } else {
+    if (!supabase) {
+      setStatus("denied");
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
         router.replace("/admin");
+        return;
       }
+
+      let isAdmin = false;
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: rpcResult, error: rpcError } = await supabase.rpc("is_admin_user");
+
+      if (!rpcError && typeof rpcResult === "boolean") {
+        isAdmin = rpcResult;
+      } else if (userData.user?.email) {
+        // Backward-compatible fallback until the admin policy migration is
+        // applied to the remote Supabase project.
+        const { data: profile } = await supabase
+          .from("participants")
+          .select("is_admin")
+          .eq("auth_email", userData.user.email)
+          .eq("is_admin", true)
+          .maybeSingle();
+        isAdmin = Boolean(profile);
+      }
+
+      if (cancelled) return;
+      if (isAdmin) setStatus("ok");
+      else router.replace("/admin");
+    })().catch(() => {
+      if (!cancelled) router.replace("/admin");
     });
-    const { data: listener } = supabase!.auth.onAuthStateChange((_event, session) => {
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) router.replace("/admin");
     });
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
   }, [router]);
 
   if (status === "checking") {

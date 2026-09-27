@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { MAX_PHOTO_SIZE_BYTES } from "@/lib/canvas/loadImage";
 
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 export default function PhotoUpload({
   onFile,
   error,
@@ -12,21 +14,45 @@ export default function PhotoUpload({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
+    setLocalError(null);
     if (!file) {
       onFile(null);
-      setPreview(null);
+      setPreview((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      return;
+    }
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      onFile(null);
+      setPreview((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      setLocalError("Format d’image non supporté. Utilisez JPG, PNG ou WebP.");
+      e.target.value = "";
       return;
     }
     if (file.size > MAX_PHOTO_SIZE_BYTES) {
       onFile(null);
-      setPreview(null);
+      setPreview((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      setLocalError("Fichier trop volumineux (8 Mo max).");
+      e.target.value = "";
       return;
     }
-    setPreview(URL.createObjectURL(file));
+    setPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return URL.createObjectURL(file);
+    });
     onFile(file);
+    e.target.value = "";
   }
 
   return (
@@ -66,11 +92,13 @@ export default function PhotoUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="image/png, image/jpeg"
+        accept="image/png, image/jpeg, image/webp"
         className="hidden"
         onChange={handleChange}
       />
-      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+      {(error || localError) && (
+        <p className="mt-2 text-xs text-danger">{error ?? localError}</p>
+      )}
     </div>
   );
 }

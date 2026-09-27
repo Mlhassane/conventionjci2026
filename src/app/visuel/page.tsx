@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import PhotoUpload from "@/components/form/PhotoUpload";
+import Confetti from "@/components/Confetti";
 import { drawPoster } from "@/lib/canvas/poster";
+import { drawJyseraiPoster } from "@/lib/canvas/jyserai";
 import {
   loadImageFromFile,
   loadImageFromUrl,
@@ -27,6 +30,8 @@ const HASHTAG = "#MaConventionJCI2026";
 type Step = "form" | "loading" | "result";
 
 export default function VisuelPage() {
+  const pathname = usePathname();
+  const isJyserai = pathname === "/j-y-seri";
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
@@ -41,7 +46,7 @@ export default function VisuelPage() {
   const prefilledRef = useRef(false);
 
   // Espace requis : sans code convention, retour vers la connexion.
-  const { status, profile } = useEspaceProfile("/visuel");
+  const { status, profile } = useEspaceProfile(isJyserai ? "/j-y-seri" : "/visuel");
 
   // Pré-remplit depuis le profil connecté (dont la photo de l'espace).
   useEffect(() => {
@@ -76,16 +81,24 @@ export default function VisuelPage() {
       if (document.fonts?.ready) await document.fonts.ready;
       const canvas = canvasRef.current;
       if (!canvas) throw new Error("no_canvas");
-      await drawPoster(canvas, {
+      const posterData = {
         name: name.trim(),
         city: city.trim(),
         organization: organization.trim(),
         message: finalMessage || PRESET_MESSAGES[0],
         photo,
-        eventDateLabel: "9 — 10 OCTOBRE",
-        location: "MARADI",
         hashtag: HASHTAG,
-      });
+      };
+
+      if (isJyserai) {
+        await drawJyseraiPoster(canvas, posterData);
+      } else {
+        await drawPoster(canvas, {
+          ...posterData,
+          eventDateLabel: "9 — 10 OCTOBRE",
+          location: "MARADI",
+        });
+      }
       const url = canvas.toDataURL("image/png");
       setPngUrl(url);
       track("poster_generated", { has_photo: Boolean(photoImg) });
@@ -103,7 +116,7 @@ export default function VisuelPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `visuel-jci-convention-2026-${slugify(name)}.png`;
+    a.download = `${isJyserai ? "j-y-seri" : "visuel"}-jci-convention-2026-${slugify(name)}.png`;
     a.click();
     URL.revokeObjectURL(url);
     track("poster_downloaded");
@@ -149,6 +162,7 @@ export default function VisuelPage() {
 
   return (
     <main className="bg-canvas">
+      <Confetti active={step === "result"} />
       <div className="container-edge py-10 md:py-16 max-w-2xl mx-auto pb-28 lg:pb-16">
         <div className="flex justify-center mb-6">
           <div className="rounded-3xl bg-white px-6 py-4 shadow-soft ring-2 ring-blue/30">
@@ -162,12 +176,14 @@ export default function VisuelPage() {
             />
           </div>
         </div>
-        <p className="eyebrow">Mon visuel</p>
+        <p className="eyebrow">{isJyserai ? "J’y serai" : "Mon visuel"}</p>
         <h1 className="mt-4 font-serif text-3xl md:text-4xl text-balance">
-          Créez votre visuel officiel
+          {isJyserai ? "J’y serai à la Convention" : "Créez votre visuel officiel"}
         </h1>
         <p className="mt-2 text-ink/60 font-sans text-sm">
-          Affichez votre participation à la Convention JCI Niger 2026.
+          {isJyserai
+            ? "Ajoutez vos informations pour créer votre visuel de participation."
+            : "Affichez votre participation à la Convention JCI Niger 2026."}
         </p>
 
         <canvas ref={canvasRef} className="hidden" />
@@ -293,7 +309,7 @@ export default function VisuelPage() {
                 onClick={handleGenerate}
                 className="btn btn-primary btn-lg btn-block"
               >
-                Générer mon visuel
+                {isJyserai ? "J’y serai" : "Générer mon visuel"}
               </button>
             </motion.div>
           )}
@@ -307,7 +323,9 @@ export default function VisuelPage() {
               className="mt-20 flex flex-col items-center gap-4 text-center"
             >
               <div className="h-12 w-12 rounded-full border-2 border-blue border-t-transparent animate-spin" />
-              <p className="font-serif text-xl">Création de ton visuel…</p>
+              <p className="font-serif text-xl">
+                {isJyserai ? "Création de votre participation…" : "Création de ton visuel…"}
+              </p>
             </motion.div>
           )}
 
@@ -319,11 +337,15 @@ export default function VisuelPage() {
               className="mt-8"
             >
               <p className="font-serif text-2xl text-center mb-6">
-                Ton visuel est prêt 🎉
+                {isJyserai ? "Votre participation est prête 🎉" : "Ton visuel est prêt 🎉"}
               </p>
               <div className="rounded-xl2 overflow-hidden shadow-lift border border-line/10 bg-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pngUrl} alt="Visuel Convention JCI Niger 2026" className="w-full" />
+                <img
+                  src={pngUrl}
+                  alt={isJyserai ? "J'y serai — Convention JCI Niger 2026" : "Visuel Convention JCI Niger 2026"}
+                  className="w-full"
+                />
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">

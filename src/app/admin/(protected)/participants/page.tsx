@@ -40,12 +40,13 @@ function getInitials(name: string): string {
 }
 
 export default function AdminParticipantsPage() {
-  const { rows, loading, error, create, update, remove } =
+  const { rows, loading, error, create, update, remove, refresh } =
     useTable<Participant>("participants", "created_at");
   const { rows: badges } = useTable<Badge>("badges", "created_at");
   const [form, setForm] = useState<Partial<Participant> | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -57,6 +58,11 @@ export default function AdminParticipantsPage() {
     return map;
   }, [badges]);
 
+  const missingCodes = useMemo(
+    () => rows.filter((p) => !p.is_admin && !p.member_code),
+    [rows]
+  );
+
   async function copyCode(code: string) {
     try {
       await navigator.clipboard.writeText(code);
@@ -64,6 +70,44 @@ export default function AdminParticipantsPage() {
       setTimeout(() => setCopied(null), 1500);
     } catch {
       // clipboard unavailable
+    }
+  }
+
+  async function assignCode(participantId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { error: updateError } = await supabase
+        .from("participants")
+        .update({ member_code: generateMemberCode() })
+        .eq("id", participantId);
+      if (!updateError) return true;
+    }
+    return false;
+  }
+
+  async function handleGenerateCode(participant: Participant) {
+    setSaving(true);
+    setCodeError(null);
+    const ok = await assignCode(participant.id);
+    await refresh();
+    setSaving(false);
+    if (!ok) setCodeError(`Impossible de générer un code pour ${participant.name}.`);
+  }
+
+  async function handleGenerateAllCodes() {
+    if (missingCodes.length === 0) return;
+    setSaving(true);
+    setCodeError(null);
+    let failed = 0;
+    for (const participant of missingCodes) {
+      if (!(await assignCode(participant.id))) failed++;
+    }
+    await refresh();
+    setSaving(false);
+    if (failed > 0) {
+      setCodeError(`${failed} code(s) n'ont pas pu être générés. Réessayez.`);
     }
   }
 
@@ -166,12 +210,30 @@ export default function AdminParticipantsPage() {
             automatiquement.
           </p>
         </div>
-        <button onClick={() => { setForm(EMPTY); setFormError(null); }} className="btn btn-dark btn-sm">
-          Inscrire un participant
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {missingCodes.length > 0 && (
+            <button
+              onClick={handleGenerateAllCodes}
+              disabled={saving}
+              className="btn btn-secondary btn-sm"
+            >
+              {saving ? "Génération…" : `Attribuer ${missingCodes.length} code(s)`}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setForm(EMPTY);
+              setFormError(null);
+            }}
+            className="btn btn-dark btn-sm"
+          >
+            Inscrire un participant
+          </button>
+        </div>
       </div>
 
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+      {codeError && <p className="mt-4 text-sm text-danger">{codeError}</p>}
 
       {form && (
         <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4 shadow-card">
@@ -307,6 +369,15 @@ export default function AdminParticipantsPage() {
                           className="rounded-md bg-ink px-2 py-0.5 font-mono text-[11px] text-blue hover:bg-navy transition-colors"
                         >
                           {copied === p.member_code ? "Copié ✓" : p.member_code}
+                        </button>
+                      )}
+                      {!p.member_code && !p.is_admin && (
+                        <button
+                          onClick={() => handleGenerateCode(p)}
+                          disabled={saving}
+                          className="rounded-full border border-blue/30 px-2.5 py-1 text-[11px] font-medium text-blue-dark hover:bg-blue/5 disabled:opacity-60"
+                        >
+                          Générer le code
                         </button>
                       )}
                       {badge ? (

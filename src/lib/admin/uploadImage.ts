@@ -9,9 +9,13 @@ export type AdminImageBucket =
   | "branding"
   | "photos";
 
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 function safeExt(file: File): string {
   const ext = file.name.split(".").pop()?.toLowerCase();
-  if (ext === "png" || ext === "webp" || ext === "svg") return ext;
+  if (ext === "png" || ext === "webp" || ext === "jpg" || ext === "jpeg") {
+    return ext === "jpeg" ? "jpg" : ext;
+  }
   return "jpg";
 }
 
@@ -29,7 +33,7 @@ export async function uploadAdminImage(
   const supabase = getSupabaseClient();
   if (!supabase || !file) return null;
   if (file.size > MAX_PHOTO_SIZE_BYTES) return null;
-  if (!file.type.startsWith("image/")) return null;
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) return null;
 
   const name =
     options?.fixedName ??

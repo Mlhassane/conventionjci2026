@@ -3,7 +3,7 @@
 Guide pour relancer **JCI Experience 2026** sur un autre ordinateur.
 
 > **Sécurité** : `.env.local` est **gitignoré** et ne doit **jamais** être commité.
-> Les clés ci-dessous sont à copier **hors de GitHub** (fichier local, gestionnaire de mots de passe, etc.).
+> **Ne colle jamais ces clés dans un chat, un ticket ou un commit.** Si une clé a été partagée, considère-la compromise et régénère-la depuis Supabase avant le déploiement.
 
 ---
 
@@ -14,7 +14,8 @@ Guide pour relancer **JCI Experience 2026** sur un autre ordinateur.
 | Node.js | 18+ (20 LTS idéal) |
 | npm | fourni avec Node |
 | Git |any |
-| Accès Supabase | projet connecté (voir §3) |
+| Supabase CLI | optionnel pour les migrations |
+| Docker ou Podman | requis uniquement pour Supabase local |
 
 ---
 
@@ -104,11 +105,12 @@ Le projet Supabase (tables, données, storage) **reste sur le cloud** : sur une 
 
 Si tu dois **recréer** un projet vierge :
 
-1. SQL Editor → exécuter dans l’ordre les fichiers de `supabase/` :
-   - `schema.sql` (tables, RLS, buckets, seed)
-   - puis chaque fichier de `supabase/migrations/*.sql` (ordre alphabétique / horodatage)
-2. Recréer l’utilisateur admin dans **Authentication → Users**.
-3. Mettre à jour `.env.local` avec la nouvelle URL / clés.
+1. SQL Editor → exécuter `supabase/schema.sql`, puis **chaque fichier** de `supabase/migrations/*.sql` dans l’ordre alphabétique / horodatage. La migration `20260925000000_secure_admin_access.sql` doit être appliquée après la migration de liaison admin.
+2. Vérifier que le projet lié par la CLI correspond exactement à celui de `.env.local` avant toute commande `db push`.
+3. Recréer l’utilisateur admin dans **Authentication → Users** et vérifier que son email est lié à la ligne participant `is_admin = true`.
+4. Mettre à jour `.env.local` avec la nouvelle URL / clés.
+
+Les mots de passe Auth ne sont pas exportables via l’API : le compte administrateur est recréé automatiquement, mais tout autre compte Auth doit être recréé ou réinitialisé manuellement dans le nouveau projet.
 
 Buckets Storage déjà prévus : `photos`, `posters`, `badges`, `partners`, `speakers`, `branding`.
 
@@ -118,11 +120,14 @@ Buckets Storage déjà prévus : `photos`, `posters`, `badges`, `partners`, `spe
 
 - [ ] `git clone` + `npm install`
 - [ ] Copier / recréer `.env.local` (5 variables, hors Git)
+- [ ] Appliquer `schema.sql` + toutes les migrations dans le bon projet
+- [ ] Vérifier que le lien CLI correspond au projet de `.env.local`
 - [ ] Vérifier que le projet Supabase est joignable
 - [ ] `npm run dev` → homepage 200
 - [ ] `/admin` : login code ou email fonctionne
 - [ ] Une modification admin apparaît sur le site public (force-dynamic)
 - [ ] Upload logo/photo admin OK (buckets)
+- [ ] Les secrets partagés ont été rotatés avant la production
 
 ---
 

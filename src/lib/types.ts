@@ -30,6 +30,9 @@ export type Participant = {
   phone: string | null;
   /** Unique code assigned by the admin after payment, used for espace login. */
   member_code: string | null;
+  /** True only for the explicitly linked administrator account. */
+  is_admin?: boolean;
+  auth_email?: string | null;
   created_at: string;
 };
 

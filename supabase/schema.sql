@@ -1,3 +1,7 @@
+-- This file is the initial schema. After running it, apply every file in
+-- supabase/migrations/ in timestamp order (participant access, admin link,
+-- officials and restricted admin policies).
+--
 -- ============================================================================
 -- JCI Experience 2026 — Supabase schema
 -- Convention JCI Niger 2026 · 9-10 octobre · Maradi

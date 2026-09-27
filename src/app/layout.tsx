@@ -23,6 +23,9 @@ const arvo = Arvo({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  ),
   title: "Convention JCI Niger 2026 — JCI Experience",
   description:
     "Découvrez la Convention JCI Niger 2026 : programme, participants, intervenants, partenaires, badges et expérience digitale.",
@@ -30,7 +33,7 @@ export const metadata: Metadata = {
     title: "Convention JCI Niger 2026 — JCI Experience",
     description:
       "Découvrez la Convention JCI Niger 2026 : programme, participants, intervenants, partenaires, badges et expérience digitale.",
-    images: ["/og-image.jpg"],
+    images: [{ url: "/hero_image.png", width: 1200, height: 630, alt: "Convention JCI Niger 2026" }],
     locale: "fr_FR",
     type: "website",
   },

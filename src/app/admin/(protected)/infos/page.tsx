@@ -29,15 +29,24 @@ export default function AdminInfosPage() {
     "display_order"
   );
   const [form, setForm] = useState<Partial<PracticalInfo> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   async function handleSave() {
-    if (!form) return;
-    if (form.id) {
-      await update(form.id, form);
-    } else {
-      await create({ ...form, display_order: rows.length });
+    if (!form || saving) return;
+    if (!form.title?.trim() || !form.content?.trim()) {
+      setFormError("Le titre et le contenu sont obligatoires.");
+      return;
     }
-    setForm(null);
+
+    setSaving(true);
+    setFormError(null);
+    const ok = form.id
+      ? await update(form.id, form)
+      : await create({ ...form, display_order: rows.length });
+    setSaving(false);
+    if (ok) setForm(null);
+    else setFormError("Une erreur est survenue. Réessayez.");
   }
 
   return (
@@ -48,7 +57,10 @@ export default function AdminInfosPage() {
           <h1 className="mt-4 font-serif text-3xl">Infos pratiques</h1>
         </div>
         <button
-          onClick={() => setForm(EMPTY)}
+          onClick={() => {
+            setFormError(null);
+            setForm(EMPTY);
+          }}
           className="btn btn-dark btn-sm"
         >
           Ajouter une information
@@ -59,6 +71,7 @@ export default function AdminInfosPage() {
 
       {form && (
         <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4">
+          {formError && <p className="text-sm text-danger">{formError}</p>}
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-ink/50 mb-1.5">Section</label>
@@ -79,10 +92,18 @@ export default function AdminInfosPage() {
           <TextInput label="Contenu" value={form.content ?? ""} onChange={(v) => setForm({ ...form, content: v })} textarea />
           <TextInput label="Lien carte (optionnel)" value={form.map_url ?? ""} onChange={(v) => setForm({ ...form, map_url: v })} />
           <div className="flex gap-3">
-            <button onClick={handleSave} className="btn btn-primary btn-sm">
-              Enregistrer
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="btn btn-primary btn-sm"
+            >
+              {saving ? "Enregistrement…" : "Enregistrer"}
             </button>
-            <button onClick={() => setForm(null)} className="btn btn-secondary btn-sm">
+            <button
+              onClick={() => setForm(null)}
+              disabled={saving}
+              className="btn btn-secondary btn-sm"
+            >
               Annuler
             </button>
           </div>
