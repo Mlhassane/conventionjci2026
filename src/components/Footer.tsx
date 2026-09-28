@@ -5,7 +5,6 @@ const NAV_LINKS = [
   { href: "/intervenants", label: "Intervenants" },
   { href: "/partenaires", label: "Partenaires" },
   { href: "/infos", label: "Infos pratiques" },
-  { href: "/badge", label: "Mon badge" },
   { href: "/visuel", label: "Mon visuel" },
 ];
 

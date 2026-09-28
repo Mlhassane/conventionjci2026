@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -479,13 +478,6 @@ export default function VisuelPage() {
                 Sur téléphone, choisis WhatsApp dans le menu de partage pour
                 joindre l’image.
               </p>
-
-              <Link
-                href="/badge"
-                className="btn btn-ghost mt-6 mx-auto flex"
-              >
-                Créer aussi mon badge officiel →
-              </Link>
             </motion.div>
           )}
         </AnimatePresence>

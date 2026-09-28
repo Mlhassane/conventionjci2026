@@ -44,7 +44,6 @@ src/
   app/
     page.tsx                     Homepage
     visuel/                      Poster generator (/visuel)
-    badge/                       Badge generator (/badge)
     badge/verify/[id]/           Public QR verification page
     programme/                   Program with category filters
     intervenants/                Speakers list + detail
@@ -53,8 +52,8 @@ src/
     infos/                       Practical information
     admin/                       Login (/admin) + protected dashboard
       (protected)/               Route group: dashboard, participants, badges,
-                                  partners, speakers, officials, programme,
-                                  infos, analytics, settings
+                                  participations, partners, speakers, officials,
+                                  programme, infos, analytics, settings
     j-y-seri/                    Public participation visual generator
   components/                    Nav, BottomNav, Footer, form fields, admin shell
   lib/
@@ -99,10 +98,10 @@ Most event-specific content lives in Supabase and is editable from `/admin`. The
 
 ## 6. Poster & badge generation
 
-Both `/j-y-seri`, `/visuel` and `/badge` are Canvas API generators that run in the browser and are open to every visitor:
+`/j-y-seri` and `/visuel` are Canvas API generators that run in the browser and are open to every visitor. Badge generation is reserved for the admin console at `/admin/badges`; the public QR verification page remains available at `/badge/verify/[code]`:
 
 - `/visuel` draws a 1080×1350 vertical poster with the participant's photo, name, city/organization, and a chosen or custom message, branded with the Convention identity and `#MaConventionJCI2026`.
-- `/badge` draws a 1080×1600 badge with a unique code (`JCI-2026-XXXXXX`) and an embedded QR code linking to `/badge/verify/[code]`. When Supabase is configured, generation also creates a public participant/badge record for verification.
+- `/admin/badges` is the admin-only badge generator. Each badge has a unique code (`JCI-2026-XXXXXX`) and an embedded QR code linking to `/badge/verify/[code]`.
 
 The PNG generation itself is client-side. When a visitor generates a `/j-y-seri` visual, the name, city, organization, message and generated PNG are also saved through Supabase (Storage + `participations` table) so the organization can review them in the admin.
 

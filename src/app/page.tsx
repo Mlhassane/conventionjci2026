@@ -299,7 +299,7 @@ export default async function HomePage() {
               Tout pour vivre la Convention
             </h2>
             <p className="mt-4 text-sm text-ink/60 leading-relaxed">
-              Badge, visuel, programme, annuaire — les outils officiels de
+              Visuel, programme, annuaire — les outils officiels de
               l&apos;édition 2026, au même endroit.
             </p>
             <div className="mt-7">
@@ -319,12 +319,6 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <ServiceCard
-              href="/badge"
-              icon={<BadgeGlyph />}
-              title="Badge digital"
-              text="Ton identité officielle pour la Convention, générée en quelques secondes."
-            />
             <ServiceCard
               href="/visuel"
               icon={<SparkGlyph />}
@@ -641,29 +635,6 @@ function PinTiny() {
         strokeWidth="1.8"
       />
       <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
-function BadgeGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-      <rect
-        x="5"
-        y="4"
-        width="14"
-        height="17"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M8.5 17c.7-1.6 2-2.4 3.5-2.4s2.8.8 3.5 2.4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
     </svg>
   );
 }

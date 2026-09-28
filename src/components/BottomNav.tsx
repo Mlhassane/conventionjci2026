@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 
 const ITEMS = [
   { href: "/", label: "Accueil", icon: HomeIcon },
-  { href: "/badge", label: "Badge", icon: BadgeIcon },
   { href: "/visuel", label: "Visuel", icon: ImageIcon },
   { href: "/programme", label: "Programme", icon: CalendarIcon },
 ];
@@ -19,7 +18,7 @@ export default function BottomNav() {
       className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-ink/95 backdrop-blur-md text-paper border-t border-white/10"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-3">
         {ITEMS.map((item) => {
           const active =
             item.href === "/"
@@ -59,15 +58,6 @@ function HomeIcon({ className }: { className?: string }) {
         strokeWidth="1.6"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-function BadgeIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="5" y="4" width="14" height="17" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M8.5 17c.7-1.6 2-2.4 3.5-2.4s2.8.8 3.5 2.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
