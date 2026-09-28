@@ -193,3 +193,54 @@ body {
     @apply justify-center;
   }
 }
+
+@layer base {
+  :root {
+    /* shadcn/ui tokens — mapped onto the JCI palette */
+    --radius: 0.75rem;
+
+    --background: 0 0% 100%;
+    --foreground: 248 50% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 248 50% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 248 50% 12%;
+
+    --primary: 198 100% 42%; /* JCI Blue #0097D7 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 198 60% 96%;
+    --secondary-foreground: 248 50% 12%;
+
+    --muted: 210 33% 97%;
+    --muted-foreground: 245 12% 45%;
+
+    --accent: 198 45% 94%;
+    --accent-foreground: 248 50% 12%;
+
+    --destructive: 356 70% 41%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 92%;
+    --input: 220 20% 92%;
+    --ring: 198 100% 42%;
+
+    --chart-1: 198 100% 42%;
+    --chart-2: 177 42% 53%;
+    --chart-3: 224 62% 33%;
+    --chart-4: 48 89% 50%;
+    --chart-5: 31 91% 45%;
+
+    /* Admin sidebar keeps the JCI black/blue identity */
+    --sidebar-background: 248 50% 12%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 198 100% 42%;
+    --sidebar-primary-foreground: 248 50% 12%;
+    --sidebar-accent: 248 30% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 248 25% 24%;
+    --sidebar-ring: 198 100% 42%;
+  }
+}

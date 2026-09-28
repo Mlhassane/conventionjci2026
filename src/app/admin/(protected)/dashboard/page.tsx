@@ -1,141 +1,241 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  BriefcaseIcon,
+  CalendarDaysIcon,
+  ExternalLinkIcon,
+  IdCardIcon,
+  MicIcon,
+  SparklesIcon,
+  UserPlusIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import type { Participation } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ActivityChart,
+  type ActivityPoint,
+} from "@/components/admin/dashboard/activity-chart";
+import { RecentParticipations } from "@/components/admin/dashboard/recent-participations";
+import {
+  DashboardStatsCards,
+  type DashboardStat,
+} from "@/components/admin/dashboard/stats-cards";
+
+const ACTIVITY_DAYS = 90;
 
 type Counts = {
-  participants: number;
-  badges: number;
-  posters: number;
-  partners: number;
-  speakers: number;
+  participants: number | null;
+  badges: number | null;
+  participations: number | null;
+  partners: number | null;
+  speakers: number | null;
 };
 
-const ANALYTICS_EVENTS = [
-  "poster_generated",
-  "poster_downloaded",
-  "whatsapp_share_clicked",
-  "badge_generated",
-  "badge_downloaded",
-] as const;
+const SHORTCUTS: { href: string; label: string; description: string; icon: LucideIcon }[] = [
+  {
+    href: "/admin/participants",
+    label: "Inscrire un participant",
+    description: "Ajouter un membre, son OLM et son code convention",
+    icon: UserPlusIcon,
+  },
+  {
+    href: "/admin/badges",
+    label: "Générer un badge",
+    description: "Créer et télécharger les badges de l’équipe",
+    icon: IdCardIcon,
+  },
+  {
+    href: "/admin/participations",
+    label: "Consulter les J’y serai",
+    description: "Nom, ville, OLM, message et image générée",
+    icon: SparklesIcon,
+  },
+  {
+    href: "/admin/programme",
+    label: "Mettre à jour le programme",
+    description: "Sessions, horaires et lieux des deux jours",
+    icon: CalendarDaysIcon,
+  },
+];
 
 export default function AdminDashboardPage() {
-  const [counts, setCounts] = useState<Counts | null>(null);
-  const [analytics, setAnalytics] = useState<Record<string, number>>({});
+  const [counts, setCounts] = useState<Counts>({
+    participants: null,
+    badges: null,
+    participations: null,
+    partners: null,
+    speakers: null,
+  });
+  const [activity, setActivity] = useState<ActivityPoint[]>([]);
+  const [participations, setParticipations] = useState<Participation[]>([]);
+  const [loadingParticipations, setLoadingParticipations] = useState(true);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
     (async () => {
-      const [participants, badges, posters, partners, speakers] = await Promise.all([
+      const [participants, badges, jySerai, partners, speakers] = await Promise.all([
         supabase.from("participants").select("id", { count: "exact", head: true }),
         supabase.from("badges").select("id", { count: "exact", head: true }),
-        supabase
-          .from("analytics_events")
-          .select("id", { count: "exact", head: true })
-          .eq("event_name", "poster_generated"),
+        supabase.from("participations").select("id", { count: "exact", head: true }),
         supabase.from("partners").select("id", { count: "exact", head: true }),
         supabase.from("speakers").select("id", { count: "exact", head: true }),
       ]);
       setCounts({
         participants: participants.count ?? 0,
         badges: badges.count ?? 0,
-        posters: posters.count ?? 0,
+        participations: jySerai.count ?? 0,
         partners: partners.count ?? 0,
         speakers: speakers.count ?? 0,
       });
 
-      const results: Record<string, number> = {};
-      for (const evt of ANALYTICS_EVENTS) {
-        const { count } = await supabase
-          .from("analytics_events")
-          .select("id", { count: "exact", head: true })
-          .eq("event_name", evt);
-        results[evt] = count ?? 0;
-      }
-      setAnalytics(results);
+      const since = new Date();
+      since.setDate(since.getDate() - ACTIVITY_DAYS);
+      const { data: events } = await supabase
+        .from("analytics_events")
+        .select("event_name, created_at")
+        .gte("created_at", since.toISOString())
+        .limit(2000);
+      setActivity(buildActivity(events ?? []));
+
+      const { data: recent } = await supabase
+        .from("participations")
+        .select("id, name, city, organization, message, image_url, created_at")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      setParticipations((recent ?? []) as Participation[]);
+      setLoadingParticipations(false);
     })();
   }, []);
 
-  const maxAnalytics = Math.max(1, ...Object.values(analytics));
+  const stats: DashboardStat[] = [
+    {
+      label: "Participants",
+      value: counts.participants,
+      href: "/admin/participants",
+      icon: UsersIcon,
+    },
+    {
+      label: "J’y serai",
+      value: counts.participations,
+      href: "/admin/participations",
+      icon: SparklesIcon,
+    },
+    {
+      label: "Badges",
+      value: counts.badges,
+      href: "/admin/badges",
+      icon: IdCardIcon,
+    },
+    {
+      label: "Partenaires",
+      value: counts.partners,
+      href: "/admin/partners",
+      icon: BriefcaseIcon,
+    },
+    {
+      label: "Intervenants",
+      value: counts.speakers,
+      href: "/admin/speakers",
+      icon: MicIcon,
+    },
+  ];
 
   return (
-    <div>
-      <div className="card shadow-card overflow-hidden">
-        <div className="flex flex-wrap items-center gap-5 p-6 md:p-8">
-          <span className="inline-block rounded-2xl bg-white px-5 py-3 shadow-soft ring-1 ring-line/10">
-            <Image
-              src="/logo.png"
-              alt="Convention Nationale JCI Niger 2026"
-              width={320}
-              height={112}
-              priority
-              className="h-14 md:h-16 w-auto object-contain"
-            />
-          </span>
-          <div className="flex-1 min-w-[200px]">
-            <p className="eyebrow">Convention Nationale · Maradi</p>
-            <h1 className="mt-4 font-serif text-3xl text-balance">
-              Vue d&apos;ensemble
-            </h1>
-            <p className="mt-2 text-sm text-ink/55">
-              9 — 10 octobre 2026 · Pilotez la Convention depuis cette console.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/admin/participants" className="btn btn-primary btn-sm">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-wide2 text-blue-dark">
+            Convention Nationale · Maradi
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold text-ink md:text-3xl">
+            Vue d&apos;ensemble
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            9 — 10 octobre 2026 · Pilotez la Convention depuis cette console.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm">
+            <Link href="/admin/participants">
+              <UserPlusIcon className="h-4 w-4" />
               Inscrire un participant
             </Link>
-            <Link href="/" className="btn btn-secondary btn-sm">
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/">
+              <ExternalLinkIcon className="h-4 w-4" />
               Voir le site
             </Link>
-          </div>
+          </Button>
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Participants" value={counts?.participants} />
-        <StatCard label="Badges" value={counts?.badges} />
-        <StatCard label="Visuels" value={counts?.posters} />
-        <StatCard label="Partenaires" value={counts?.partners} />
-        <StatCard label="Intervenants" value={counts?.speakers} />
+      <DashboardStatsCards stats={stats} />
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <ActivityChart data={activity} />
+        </div>
+        <Card className="border-line/10 shadow-card">
+          <CardHeader>
+            <CardTitle>Raccourcis</CardTitle>
+            <CardDescription>Les actions les plus utilisées de la console.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {SHORTCUTS.map((shortcut) => (
+              <Link
+                key={shortcut.href}
+                href={shortcut.href}
+                className="flex items-start gap-3 rounded-lg border border-transparent p-3 transition-colors hover:border-line/10 hover:bg-muted"
+              >
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <shortcut.icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-ink">{shortcut.label}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {shortcut.description}
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="mt-10 card shadow-card p-6">
-        <p className="font-serif text-xl mb-6">Actions suivies</p>
-        <div className="space-y-4">
-          {ANALYTICS_EVENTS.map((evt) => {
-            const value = analytics[evt] ?? 0;
-            return (
-              <div key={evt}>
-                <div className="flex justify-between text-xs text-ink/50 mb-1">
-                  <span>{evt}</span>
-                  <span className="font-medium text-ink/70">{value}</span>
-                </div>
-                <div className="h-2 rounded-full bg-ink/5 overflow-hidden">
-                  <div
-                    className="h-full bg-blue rounded-full transition-all duration-700"
-                    style={{ width: `${(value / maxAnalytics) * 100}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <RecentParticipations rows={participations} loading={loadingParticipations} />
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value?: number }) {
-  return (
-    <div className="card shadow-card p-5 transition-shadow hover:shadow-lift">
-      <span aria-hidden className="mb-4 block h-1 w-8 rounded-full bg-blue" />
-      <p className="font-serif text-3xl">{value ?? "—"}</p>
-      <p className="mt-1 text-xs text-ink/50">{label}</p>
-    </div>
-  );
+function buildActivity(
+  events: { event_name: string; created_at: string }[],
+): ActivityPoint[] {
+  const buckets = new Map<string, ActivityPoint>();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let offset = ACTIVITY_DAYS - 1; offset >= 0; offset -= 1) {
+    const day = new Date(today);
+    day.setDate(today.getDate() - offset);
+    const key = day.toISOString().slice(0, 10);
+    buckets.set(key, { date: key, visuels: 0, badges: 0 });
+  }
+
+  for (const event of events) {
+    const bucket = buckets.get(new Date(event.created_at).toISOString().slice(0, 10));
+    if (!bucket) continue;
+    if (event.event_name === "poster_generated") bucket.visuels += 1;
+    if (event.event_name === "badge_generated") bucket.badges += 1;
+  }
+
+  return [...buckets.values()];
 }

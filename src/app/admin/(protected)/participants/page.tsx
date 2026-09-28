@@ -1,12 +1,51 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  CheckIcon,
+  CopyIcon,
+  IdCardIcon,
+  PencilIcon,
+  PlusIcon,
+  SparklesIcon,
+  Trash2Icon,
+  UserRoundIcon,
+  UsersIcon,
+} from "lucide-react";
 import { useTable } from "@/lib/admin/useTable";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import ImageUpload from "@/components/form/ImageUpload";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import { Badge, Participant } from "@/lib/types";
 import { generateMemberCode, normalizePhone } from "@/lib/participants";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge as UiBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { EmptyState } from "@/components/admin/ui/empty-state";
+import { SelectField, TextField } from "@/components/admin/ui/form-fields";
+import { ListToolbar } from "@/components/admin/ui/list-toolbar";
+import { PageHeader } from "@/components/admin/ui/page-header";
+import { RowActions } from "@/components/admin/ui/row-actions";
+import { StatCard, TableSkeleton } from "@/components/admin/ui/stat-card";
 
 const ROLES = [
   "Participant",
@@ -35,7 +74,7 @@ function getInitials(name: string): string {
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
+    .map((word) => word.charAt(0).toUpperCase())
     .join("");
 }
 
@@ -47,29 +86,47 @@ export default function AdminParticipantsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [codeError, setCodeError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [search, setSearch] = useState("");
 
   const badgeByParticipant = useMemo(() => {
     const map = new Map<string, Badge>();
-    for (const b of badges) {
-      if (b.participant_id && !map.has(b.participant_id)) map.set(b.participant_id, b);
+    for (const badge of badges) {
+      if (badge.participant_id && !map.has(badge.participant_id)) {
+        map.set(badge.participant_id, badge);
+      }
     }
     return map;
   }, [badges]);
 
   const missingCodes = useMemo(
-    () => rows.filter((p) => !p.is_admin && !p.member_code),
+    () => rows.filter((participant) => !participant.is_admin && !participant.member_code),
     [rows]
   );
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((participant) =>
+      [
+        participant.name,
+        participant.phone,
+        participant.member_code,
+        participant.organization,
+        participant.city,
+        participant.role,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [rows, search]);
 
   async function copyCode(code: string) {
     try {
       await navigator.clipboard.writeText(code);
-      setCopied(code);
-      setTimeout(() => setCopied(null), 1500);
+      toast.success("Code copié", { description: code });
     } catch {
-      // clipboard unavailable
+      toast.error("Copie impossible", { description: "Le presse-papiers est bloqué." });
     }
   }
 
@@ -88,26 +145,28 @@ export default function AdminParticipantsPage() {
   }
 
   async function handleGenerateCode(participant: Participant) {
-    setSaving(true);
     setCodeError(null);
     const ok = await assignCode(participant.id);
     await refresh();
-    setSaving(false);
-    if (!ok) setCodeError(`Impossible de générer un code pour ${participant.name}.`);
+    if (ok) {
+      toast.success("Code attribué", { description: participant.name });
+    } else {
+      setCodeError(`Impossible de générer un code pour ${participant.name}.`);
+    }
   }
 
   async function handleGenerateAllCodes() {
     if (missingCodes.length === 0) return;
-    setSaving(true);
     setCodeError(null);
     let failed = 0;
     for (const participant of missingCodes) {
-      if (!(await assignCode(participant.id))) failed++;
+      if (!(await assignCode(participant.id))) failed += 1;
     }
     await refresh();
-    setSaving(false);
     if (failed > 0) {
       setCodeError(`${failed} code(s) n'ont pas pu être générés. Réessayez.`);
+    } else {
+      toast.success(`${missingCodes.length} code(s) attribué(s)`);
     }
   }
 
@@ -124,7 +183,7 @@ export default function AdminParticipantsPage() {
       setFormError("Échec de l’envoi de la photo. Réessayez.");
       return;
     }
-    setForm((f) => (f ? { ...f, photo_url: url } : f));
+    setForm((current) => (current ? { ...current, photo_url: url } : current));
   }
 
   async function handleSave() {
@@ -138,12 +197,12 @@ export default function AdminParticipantsPage() {
       setFormError("Numéro de téléphone invalide (ex : 90 00 00 00).");
       return;
     }
+
     setSaving(true);
     setFormError(null);
     const supabase = getSupabaseClient();
 
     if (form.id) {
-      // Update — check phone isn't taken by someone else
       const { data: clash } = await supabase
         ?.from("participants")
         .select("id")
@@ -165,12 +224,15 @@ export default function AdminParticipantsPage() {
         is_public: form.is_public ?? true,
       });
       setSaving(false);
-      if (ok) setForm(null);
-      else setFormError("Une erreur est survenue. Réessayez.");
+      if (ok) {
+        setForm(null);
+        toast.success("Participant mis à jour", { description: form.name.trim() });
+      } else {
+        setFormError("Une erreur est survenue. Réessayez.");
+      }
       return;
     }
 
-    // Create — unique phone + fresh member code (retry on collision)
     const { data: existing } = await supabase
       ?.from("participants")
       .select("id")
@@ -181,6 +243,7 @@ export default function AdminParticipantsPage() {
       setSaving(false);
       return;
     }
+
     let created = false;
     for (let attempt = 0; attempt < 4 && !created; attempt++) {
       created = await create({
@@ -195,125 +258,333 @@ export default function AdminParticipantsPage() {
       });
     }
     setSaving(false);
-    if (created) setForm(null);
-    else setFormError("Une erreur est survenue. Réessayez.");
+    if (created) {
+      setForm(null);
+      toast.success("Participant inscrit", { description: form.name.trim() });
+    } else {
+      setFormError("Une erreur est survenue. Réessayez.");
+    }
   }
 
+  async function handleDelete(participant: Participant) {
+    const ok = await remove(participant.id);
+    if (ok) {
+      toast.success("Participant supprimé", { description: participant.name });
+    } else {
+      toast.error("Suppression impossible");
+    }
+  }
+
+  const formName = (form?.name ?? "").trim();
+
   return (
-    <div>
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h1 className="mt-4 font-serif text-3xl">Participants</h1>
-          <p className="mt-2 text-sm text-ink/55">
-            Inscription après paiement : téléphone + photo, code unique généré
-            automatiquement.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {missingCodes.length > 0 && (
-            <button
-              onClick={handleGenerateAllCodes}
-              disabled={saving}
-              className="btn btn-secondary btn-sm"
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Participants"
+        description="Inscription après paiement : téléphone, photo et code unique généré automatiquement."
+        actions={
+          <>
+            {missingCodes.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleGenerateAllCodes}>
+                <IdCardIcon className="h-4 w-4" />
+                Attribuer {missingCodes.length} code(s)
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={() => {
+                setForm(EMPTY);
+                setFormError(null);
+              }}
             >
-              {saving ? "Génération…" : `Attribuer ${missingCodes.length} code(s)`}
-            </button>
-          )}
-          <button
-            onClick={() => {
-              setForm(EMPTY);
-              setFormError(null);
-            }}
-            className="btn btn-dark btn-sm"
-          >
-            Inscrire un participant
-          </button>
-        </div>
+              <PlusIcon className="h-4 w-4" />
+              Inscrire un participant
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Participants"
+          value={rows.length}
+          icon={UsersIcon}
+          hint="Inscriptions enregistrées"
+        />
+        <StatCard
+          label="Avec code"
+          value={rows.filter((participant) => participant.member_code).length}
+          hint="Code convention attribué"
+        />
+        <StatCard
+          label="Badge généré"
+          value={rows.filter((participant) => badgeByParticipant.has(participant.id)).length}
+          icon={IdCardIcon}
+        />
+        <StatCard
+          label="Publics"
+          value={rows.filter((participant) => participant.is_public).length}
+          icon={SparklesIcon}
+          hint="Visibles sur le site"
+        />
       </div>
 
-      {error && <p className="mt-4 text-sm text-danger">{error}</p>}
-      {codeError && <p className="mt-4 text-sm text-danger">{codeError}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {codeError && <p className="text-sm text-destructive">{codeError}</p>}
 
-      {form && (
-        <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4 shadow-card">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <TextInput label="Nom complet *" value={form.name ?? ""} onChange={(v) => setForm({ ...form, name: v })} />
-            <TextInput label="Téléphone * (ex : 90 00 00 00)" value={form.phone ?? ""} onChange={(v) => setForm({ ...form, phone: v })} inputMode="tel" />
-          </div>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <TextInput label="Ville" value={form.city ?? ""} onChange={(v) => setForm({ ...form, city: v })} />
-            <TextInput label="Organisation / Local JCI" value={form.organization ?? ""} onChange={(v) => setForm({ ...form, organization: v })} />
-            <div>
-              <label className="block text-xs text-ink/50 mb-1.5">Rôle</label>
-              <select
-                value={(form.role as string) ?? "Participant"}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className="input"
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
+      <Card className="gap-0 overflow-hidden border-line/10 py-0 shadow-card">
+        <ListToolbar
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="Nom, téléphone, code, ville…"
+          count={filtered.length}
+          total={rows.length}
+        />
+        <CardContent className="px-0">
+          {loading ? (
+            <TableSkeleton columns={5} rows={6} />
+          ) : filtered.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={UserRoundIcon}
+                title={rows.length === 0 ? "Aucun participant inscrit" : "Aucun résultat"}
+                description={
+                  rows.length === 0
+                    ? "Inscrivez le premier participant de la Convention."
+                    : "Modifiez votre recherche pour trouver un participant."
+                }
+              />
             </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6">Participant</TableHead>
+                    <TableHead>Téléphone</TableHead>
+                    <TableHead>Rôle</TableHead>
+                    <TableHead>Organisation · Ville</TableHead>
+                    <TableHead>Statuts</TableHead>
+                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((participant) => {
+                    const hasBadge = badgeByParticipant.has(participant.id);
+                    return (
+                      <TableRow key={participant.id}>
+                        <TableCell className="pl-6">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              {participant.photo_url && (
+                                <AvatarImage
+                                  src={participant.photo_url}
+                                  alt={participant.name}
+                                />
+                              )}
+                              <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                                {getInitials(participant.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-foreground">
+                                {participant.name}
+                              </p>
+                              {participant.member_code ? (
+                                <button
+                                  onClick={() => copyCode(participant.member_code as string)}
+                                  className="mt-0.5 inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground"
+                                >
+                                  <CopyIcon className="h-3 w-3" />
+                                  {participant.member_code}
+                                </button>
+                              ) : participant.is_admin ? (
+                                <p className="text-[11px] text-muted-foreground">
+                                  Administrateur
+                                </p>
+                              ) : (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="h-auto p-0 text-[11px]"
+                                  onClick={() => handleGenerateCode(participant)}
+                                >
+                                  Générer le code
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {participant.phone ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <UiBadge variant="secondary">{participant.role ?? "—"}</UiBadge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {[participant.organization, participant.city]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {hasBadge ? (
+                              <UiBadge className="bg-success/10 text-success hover:bg-success/10">
+                                <CheckIcon className="h-3 w-3" />
+                                Badge
+                              </UiBadge>
+                            ) : (
+                              <UiBadge variant="outline">Badge en attente</UiBadge>
+                            )}
+                            <UiBadge
+                              variant="outline"
+                              className={
+                                participant.is_public
+                                  ? "border-success/40 text-success"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {participant.is_public ? "Public" : "Masqué"}
+                            </UiBadge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="pr-6 text-right">
+                          <RowActions
+                            items={[
+                              {
+                                label: "Modifier",
+                                icon: PencilIcon,
+                                onSelect: () => {
+                                  setFormError(null);
+                                  setForm(participant);
+                                },
+                              },
+                              {
+                                label: participant.is_public
+                                  ? "Masquer de la page publique"
+                                  : "Rendre public",
+                                icon: UserRoundIcon,
+                                onSelect: () => {
+                                  update(participant.id, { is_public: !participant.is_public });
+                                  toast.success(
+                                    participant.is_public
+                                      ? "Participant masqué"
+                                      : "Participant rendu public",
+                                    { description: participant.name }
+                                  );
+                                },
+                              },
+                              {
+                                label: "Supprimer",
+                                icon: Trash2Icon,
+                                tone: "destructive",
+                                onSelect: () => handleDelete(participant),
+                                confirm: {
+                                  title: `Supprimer ${participant.name} ?`,
+                                  description:
+                                    "Le participant et son code convention seront définitivement supprimés.",
+                                  label: "Supprimer",
+                                },
+                              },
+                            ]}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={Boolean(form)} onOpenChange={(open) => !open && setForm(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{form?.id ? "Modifier le participant" : "Inscrire un participant"}</DialogTitle>
+            <DialogDescription>
+              Le code convention est généré automatiquement à l&apos;inscription.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="Nom complet"
+              required
+              value={form?.name ?? ""}
+              onChange={(value) => setForm({ ...form, name: value })}
+            />
+            <TextField
+              label="Téléphone"
+              required
+              inputMode="tel"
+              placeholder="90 00 00 00"
+              value={form?.phone ?? ""}
+              onChange={(value) => setForm({ ...form, phone: value })}
+            />
+            <TextField
+              label="Ville"
+              value={form?.city ?? ""}
+              onChange={(value) => setForm({ ...form, city: value })}
+            />
+            <TextField
+              label="Organisation / Local JCI"
+              value={form?.organization ?? ""}
+              onChange={(value) => setForm({ ...form, organization: value })}
+            />
+            <SelectField
+              label="Rôle"
+              className="sm:col-span-2"
+              value={(form?.role as string) ?? "Participant"}
+              onChange={(value) => setForm({ ...form, role: value })}
+              options={ROLES.map((role) => ({ value: role, label: role }))}
+            />
           </div>
-          <div className="grid sm:grid-cols-2 gap-6 items-start">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-ink/50 mb-1.5">
-                  Photo — badge & annuaire
-                </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <p className="text-xs text-ink/60">Photo — badge & annuaire</p>
+              <div className="rounded-lg border border-line/10 bg-muted/40 p-3">
                 <ImageUpload
                   onFile={handlePhotoFile}
-                  currentUrl={form.photo_url}
+                  currentUrl={form?.photo_url}
                   error={uploading ? "Envoi en cours…" : null}
                   shape="circle"
                   label="Téléverser la photo"
                   hint="JPG ou PNG, 8 Mo max"
                 />
               </div>
-              <label className="flex items-center gap-2.5 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.is_public ?? true}
-                  onChange={(e) => setForm({ ...form, is_public: e.target.checked })}
-                  className="h-4 w-4 accent-[#0097D7]"
+              <label className="flex cursor-pointer items-center gap-2 pt-1 text-sm">
+                <Switch
+                  checked={form?.is_public ?? true}
+                  onCheckedChange={(checked) => setForm({ ...form, is_public: checked })}
                 />
-                Visible sur la page Participants publique
+                Visible sur la page participants publique
               </label>
             </div>
 
-            <div className="rounded-xl2 border border-line/12 bg-white p-4 shadow-card">
-              <p className="text-[10px] tracking-wide2 uppercase text-ink/40 mb-3">
+            <div className="rounded-lg border border-line/10 bg-muted/40 p-4">
+              <p className="mb-3 text-[11px] uppercase tracking-wide2 text-ink/40">
                 Aperçu participant
               </p>
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-blue/40 bg-blue/10 flex items-center justify-center">
-                  {form.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={form.photo_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="font-serif text-lg text-blue-dark">
-                      {(form.name ?? "?").trim()
-                        ? getInitials(form.name!.trim())
-                        : "?"}
-                    </span>
-                  )}
-                </div>
+                <Avatar className="h-16 w-16">
+                  {form?.photo_url && <AvatarImage src={form.photo_url} alt="" />}
+                  <AvatarFallback className="bg-primary/10 text-lg text-primary">
+                    {formName ? getInitials(formName) : "?"}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="min-w-0">
-                  <p className="font-serif text-lg leading-tight truncate">
-                    {(form.name ?? "").trim() || "Nom du participant"}
+                  <p className="truncate text-lg font-semibold leading-tight text-foreground">
+                    {(form?.name ?? "").trim() || "Nom du participant"}
                   </p>
-                  <p className="mt-0.5 text-xs text-ink/50 truncate">
-                    {[form.role, form.organization, form.city]
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {[form?.role, form?.organization, form?.city]
                       .filter(Boolean)
                       .join(" · ") || "Rôle · Organisation · Ville"}
                   </p>
-                  {form.member_code && (
+                  {form?.member_code && (
                     <p className="mt-2 inline-block rounded-md bg-ink px-2 py-0.5 font-mono text-[11px] text-blue">
                       {form.member_code}
                     </p>
@@ -322,127 +593,19 @@ export default function AdminParticipantsPage() {
               </div>
             </div>
           </div>
-          {formError && <p className="text-sm text-danger">{formError}</p>}
-          <div className="flex gap-3">
-            <button onClick={handleSave} disabled={saving || uploading} className="btn btn-primary btn-sm disabled:opacity-60">
-              {saving || uploading ? "Enregistrement…" : "Enregistrer"}
-            </button>
-            <button onClick={() => setForm(null)} className="btn btn-secondary btn-sm">
+
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForm(null)} disabled={saving}>
               Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 space-y-3">
-        {loading ? (
-          <p className="text-sm text-ink/50">Chargement…</p>
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-ink/50">Aucun participant inscrit pour le moment.</p>
-        ) : (
-          rows.map((p) => {
-            const badge = badgeByParticipant.get(p.id);
-            return (
-              <div key={p.id} className="card card-hover p-4 flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-line/10 bg-blue/10 flex items-center justify-center">
-                    {p.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.photo_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="font-serif text-sm text-blue-dark">
-                        {getInitials(p.name)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium">{p.name}</p>
-                      {p.member_code && (
-                        <button
-                          onClick={() => copyCode(p.member_code as string)}
-                          title="Copier le code"
-                          className="rounded-md bg-ink px-2 py-0.5 font-mono text-[11px] text-blue hover:bg-navy transition-colors"
-                        >
-                          {copied === p.member_code ? "Copié ✓" : p.member_code}
-                        </button>
-                      )}
-                      {!p.member_code && !p.is_admin && (
-                        <button
-                          onClick={() => handleGenerateCode(p)}
-                          disabled={saving}
-                          className="rounded-full border border-blue/30 px-2.5 py-1 text-[11px] font-medium text-blue-dark hover:bg-blue/5 disabled:opacity-60"
-                        >
-                          Générer le code
-                        </button>
-                      )}
-                      {badge ? (
-                        <span className="rounded-full bg-success/10 px-2.5 py-0.5 text-[11px] font-medium text-success">
-                          Badge généré
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-blue/20 px-2.5 py-0.5 text-[11px] font-medium text-ink">
-                          Badge en attente
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-ink/45 mt-1">
-                      {p.phone ?? "—"} · {[p.role, p.organization, p.city].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => update(p.id, { is_public: !p.is_public })}
-                    className={`text-xs rounded-full px-3 py-1.5 border ${
-                      p.is_public ? "border-success text-success" : "border-ink/20 text-ink/40"
-                    }`}
-                  >
-                    {p.is_public ? "Public" : "Masqué"}
-                  </button>
-                  <button onClick={() => { setForm(p); setFormError(null); }} className="text-xs rounded-full border border-ink/20 px-3 py-1.5 hover:border-ink">
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => remove(p.id)}
-                    className="text-xs rounded-full border border-danger/30 text-danger px-3 py-1.5 hover:bg-danger/5"
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TextInput({
-  label,
-  value,
-  onChange,
-  inputMode,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  inputMode?: "tel" | "text";
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-ink/50 mb-1.5">{label}</label>
-      <input
-        value={value}
-        inputMode={inputMode}
-        onChange={(e) => onChange(e.target.value)}
-        className="input"
-      />
+            </Button>
+            <Button onClick={handleSave} disabled={saving || uploading}>
+              {saving || uploading ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,10 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  Building2Icon,
+  EyeIcon,
+  EyeOffIcon,
+  HandshakeIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useTable } from "@/lib/admin/useTable";
 import ImageUpload from "@/components/form/ImageUpload";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import { Partner, PartnerCategory } from "@/lib/types";
+import { Badge as UiBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { EmptyState } from "@/components/admin/ui/empty-state";
+import { SelectField, TextAreaField, TextField } from "@/components/admin/ui/form-fields";
+import { ListToolbar } from "@/components/admin/ui/list-toolbar";
+import { PageHeader } from "@/components/admin/ui/page-header";
+import { RowActions } from "@/components/admin/ui/row-actions";
+import { StatCard, TableSkeleton } from "@/components/admin/ui/stat-card";
 
 const CATEGORIES: PartnerCategory[] = [
   "Partenaire officiel",
@@ -36,15 +71,26 @@ export default function AdminPartnersPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((partner) =>
+      [partner.name, partner.category, partner.offer, partner.website]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [rows, search]);
 
   function openCreate() {
     setFormError(null);
     setForm(EMPTY);
   }
 
-  function openEdit(p: Partner) {
+  function openEdit(partner: Partner) {
     setFormError(null);
-    setForm(p);
+    setForm(partner);
   }
 
   async function handleLogoFile(file: File) {
@@ -56,7 +102,7 @@ export default function AdminPartnersPage() {
       setFormError("Échec de l’envoi du logo. Réessayez.");
       return;
     }
-    setForm((f) => (f ? { ...f, logo_url: url } : f));
+    setForm((current) => (current ? { ...current, logo_url: url } : current));
   }
 
   async function handleSave() {
@@ -71,12 +117,9 @@ export default function AdminPartnersPage() {
     setFormError(null);
     const payload = { ...form, name };
 
-    let ok: boolean;
-    if (form.id) {
-      ok = await update(form.id, payload);
-    } else {
-      ok = await create({ ...payload, display_order: rows.length });
-    }
+    const ok = form.id
+      ? await update(form.id, payload)
+      : await create({ ...payload, display_order: rows.length });
     setSaving(false);
 
     if (!ok) {
@@ -84,211 +127,254 @@ export default function AdminPartnersPage() {
       return;
     }
     setForm(null);
+    toast.success(form.id ? "Partenaire mis à jour" : "Partenaire ajouté", {
+      description: name,
+    });
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h1 className="mt-4 font-serif text-3xl">Partenaires</h1>
-        </div>
-        <button onClick={openCreate} className="btn btn-dark btn-sm">
-          Ajouter un partenaire
-        </button>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Partenaires"
+        description="Structures et entreprises qui soutiennent la Convention et apparaissent sur le site public."
+        actions={
+          <Button size="sm" onClick={openCreate}>
+            <PlusIcon className="h-4 w-4" />
+            Ajouter un partenaire
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Partenaires" value={rows.length} icon={HandshakeIcon} />
+        <StatCard
+          label="Publiés"
+          value={rows.filter((partner) => partner.is_visible).length}
+          icon={EyeIcon}
+        />
+        <StatCard
+          label="Masqués"
+          value={rows.filter((partner) => !partner.is_visible).length}
+          icon={EyeOffIcon}
+        />
       </div>
 
-      {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {form && (
-        <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4">
-          {formError && <p className="text-sm text-danger">{formError}</p>}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <TextInput
-              label="Nom *"
-              value={form.name ?? ""}
-              onChange={(v) => setForm({ ...form, name: v })}
-            />
-            <SelectInput
-              label="Catégorie"
-              value={form.category as string}
-              options={CATEGORIES}
-              onChange={(v) =>
-                setForm({ ...form, category: v as PartnerCategory })
-              }
-            />
-          </div>
-          <TextInput
-            label="Description"
-            value={form.description ?? ""}
-            onChange={(v) => setForm({ ...form, description: v })}
-            textarea
-          />
-          <div>
-            <label className="block text-xs text-ink/50 mb-1.5">Logo</label>
-            <ImageUpload
-              onFile={handleLogoFile}
-              currentUrl={form.logo_url}
-              error={uploading ? "Envoi en cours…" : null}
-              shape="rect"
-              label="Téléverser le logo"
-              hint="PNG transparent recommandé, 8 Mo max"
-            />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <TextInput
-              label="Site web"
-              value={form.website ?? ""}
-              onChange={(v) => setForm({ ...form, website: v })}
-            />
-            <TextInput
-              label="WhatsApp"
-              value={form.whatsapp ?? ""}
-              onChange={(v) => setForm({ ...form, whatsapp: v })}
-            />
-            <TextInput
-              label="Offre Convention"
-              value={form.offer ?? ""}
-              onChange={(v) => setForm({ ...form, offer: v })}
-            />
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving || uploading}
-              className="btn btn-primary btn-sm disabled:opacity-60"
-            >
-              {saving || uploading ? "Enregistrement…" : "Enregistrer"}
-            </button>
-            <button
-              onClick={() => setForm(null)}
-              disabled={saving}
-              className="btn btn-secondary btn-sm"
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 space-y-3">
-        {loading ? (
-          <p className="text-sm text-ink/50">Chargement…</p>
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-ink/50">Aucun partenaire pour le moment.</p>
-        ) : (
-          rows.map((p) => (
-            <div
-              key={p.id}
-              className="card card-hover p-4 flex items-center justify-between gap-4 flex-wrap"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                {p.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.logo_url}
-                    alt=""
-                    className="h-10 w-14 rounded-lg border border-line/10 bg-white object-contain shrink-0"
-                  />
-                ) : (
-                  <div className="h-10 w-14 rounded-lg border border-line/10 bg-canvas shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{p.name}</p>
-                  <p className="text-xs text-ink/45">{p.category}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => update(p.id, { is_visible: !p.is_visible })}
-                  className={`text-xs rounded-full px-3 py-1.5 border ${
-                    p.is_visible
-                      ? "border-success text-success"
-                      : "border-ink/20 text-ink/40"
-                  }`}
-                >
-                  {p.is_visible ? "Publié" : "Masqué"}
-                </button>
-                <button
-                  onClick={() => openEdit(p)}
-                  className="text-xs rounded-full border border-ink/20 px-3 py-1.5 hover:border-ink"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm(`Supprimer « ${p.name} » ?`)) remove(p.id);
-                  }}
-                  className="text-xs rounded-full border border-danger/30 text-danger px-3 py-1.5 hover:bg-danger/5"
-                >
-                  Supprimer
-                </button>
-              </div>
+      <Card className="gap-0 overflow-hidden border-line/10 py-0 shadow-card">
+        <ListToolbar
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="Nom, catégorie, offre…"
+          count={filtered.length}
+          total={rows.length}
+        />
+        <CardContent className="px-0">
+          {loading ? (
+            <TableSkeleton columns={4} rows={5} />
+          ) : filtered.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={HandshakeIcon}
+                title={rows.length === 0 ? "Aucun partenaire" : "Aucun résultat"}
+                description={
+                  rows.length === 0
+                    ? "Ajoutez le premier partenaire de la Convention."
+                    : "Modifiez votre recherche pour trouver un partenaire."
+                }
+                action={
+                  rows.length === 0 ? (
+                    <Button size="sm" onClick={openCreate}>
+                      <PlusIcon className="h-4 w-4" />
+                      Ajouter un partenaire
+                    </Button>
+                  ) : undefined
+                }
+              />
             </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6">Partenaire</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead>Offre</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((partner) => (
+                    <TableRow key={partner.id}>
+                      <TableCell className="pl-6">
+                        <div className="flex items-center gap-3">
+                          {partner.logo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={partner.logo_url}
+                              alt=""
+                              className="h-9 w-14 shrink-0 rounded-lg border border-line/10 bg-white object-contain"
+                            />
+                          ) : (
+                            <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-lg border border-line/10 bg-muted">
+                              <Building2Icon className="h-4 w-4 text-muted-foreground" />
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">{partner.name}</p>
+                            {partner.website && (
+                              <p className="truncate text-xs text-muted-foreground">
+                                {partner.website.replace(/^https?:\/\//, "")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <UiBadge variant="secondary">{partner.category}</UiBadge>
+                      </TableCell>
+                      <TableCell className="max-w-[240px] truncate text-muted-foreground">
+                        {partner.offer ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <UiBadge
+                          variant="outline"
+                          className={
+                            partner.is_visible
+                              ? "border-success/40 text-success"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {partner.is_visible ? "Publié" : "Masqué"}
+                        </UiBadge>
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <RowActions
+                          items={[
+                            {
+                              label: "Modifier",
+                              icon: PencilIcon,
+                              onSelect: () => openEdit(partner),
+                            },
+                            {
+                              label: partner.is_visible ? "Masquer" : "Publier",
+                              icon: partner.is_visible ? EyeOffIcon : EyeIcon,
+                              onSelect: () => {
+                                update(partner.id, { is_visible: !partner.is_visible });
+                                toast.success(
+                                  partner.is_visible ? "Partenaire masqué" : "Partenaire publié",
+                                  { description: partner.name }
+                                );
+                              },
+                            },
+                            {
+                              label: "Supprimer",
+                              icon: Trash2Icon,
+                              tone: "destructive",
+                              onSelect: async () => {
+                                const ok = await remove(partner.id);
+                                if (ok) {
+                                  toast.success("Partenaire supprimé", { description: partner.name });
+                                } else {
+                                  toast.error("Suppression impossible");
+                                }
+                              },
+                              confirm: {
+                                title: `Supprimer « ${partner.name} » ?`,
+                                description: "Cette action est définitive.",
+                                label: "Supprimer",
+                              },
+                            },
+                          ]}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-function TextInput({
-  label,
-  value,
-  onChange,
-  textarea,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  textarea?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-ink/50 mb-1.5">{label}</label>
-      {textarea ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={3}
-          className="input"
-        />
-      ) : (
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="input"
-        />
-      )}
-    </div>
-  );
-}
+      <Dialog open={Boolean(form)} onOpenChange={(open) => !open && setForm(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{form?.id ? "Modifier le partenaire" : "Ajouter un partenaire"}</DialogTitle>
+            <DialogDescription>
+              Le logo et l&apos;offre Convention sont affichés sur la page publique.
+            </DialogDescription>
+          </DialogHeader>
 
-function SelectInput({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-ink/50 mb-1.5">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input"
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="Nom"
+              required
+              value={form?.name ?? ""}
+              onChange={(value) => setForm({ ...form, name: value })}
+            />
+            <SelectField
+              label="Catégorie"
+              value={(form?.category as string) ?? "Sponsor"}
+              onChange={(value) => setForm({ ...form, category: value as PartnerCategory })}
+              options={CATEGORIES.map((category) => ({ value: category, label: category }))}
+            />
+          </div>
+
+          <TextAreaField
+            label="Description"
+            rows={3}
+            value={form?.description ?? ""}
+            onChange={(value) => setForm({ ...form, description: value })}
+          />
+
+          <div className="space-y-1.5">
+            <p className="text-xs text-ink/60">Logo</p>
+            <div className="rounded-lg border border-line/10 bg-muted/40 p-3">
+              <ImageUpload
+                onFile={handleLogoFile}
+                currentUrl={form?.logo_url}
+                error={uploading ? "Envoi en cours…" : null}
+                shape="rect"
+                label="Téléverser le logo"
+                hint="PNG transparent recommandé, 8 Mo max"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <TextField
+              label="Site web"
+              placeholder="https://"
+              value={form?.website ?? ""}
+              onChange={(value) => setForm({ ...form, website: value })}
+            />
+            <TextField
+              label="WhatsApp"
+              inputMode="tel"
+              value={form?.whatsapp ?? ""}
+              onChange={(value) => setForm({ ...form, whatsapp: value })}
+            />
+            <TextField
+              label="Offre Convention"
+              value={form?.offer ?? ""}
+              onChange={(value) => setForm({ ...form, offer: value })}
+            />
+          </div>
+
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForm(null)} disabled={saving}>
+              Annuler
+            </Button>
+            <Button onClick={handleSave} disabled={saving || uploading}>
+              {saving || uploading ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,10 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  MicIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  UsersIcon,
+} from "lucide-react";
 import { useTable } from "@/lib/admin/useTable";
 import ImageUpload from "@/components/form/ImageUpload";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import { Speaker } from "@/lib/types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge as UiBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { EmptyState } from "@/components/admin/ui/empty-state";
+import { TextAreaField, TextField } from "@/components/admin/ui/form-fields";
+import { ListToolbar } from "@/components/admin/ui/list-toolbar";
+import { PageHeader } from "@/components/admin/ui/page-header";
+import { RowActions } from "@/components/admin/ui/row-actions";
+import { StatCard, TableSkeleton } from "@/components/admin/ui/stat-card";
 
 const EMPTY: Partial<Speaker> = {
   name: "",
@@ -16,6 +52,15 @@ const EMPTY: Partial<Speaker> = {
   is_visible: true,
 };
 
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+}
+
 export default function AdminSpeakersPage() {
   const { rows, loading, error, create, update, remove } = useTable<Speaker>(
     "speakers",
@@ -25,15 +70,26 @@ export default function AdminSpeakersPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((speaker) =>
+      [speaker.name, speaker.position, speaker.organization]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [rows, search]);
 
   function openCreate() {
     setFormError(null);
     setForm(EMPTY);
   }
 
-  function openEdit(s: Speaker) {
+  function openEdit(speaker: Speaker) {
     setFormError(null);
-    setForm(s);
+    setForm(speaker);
   }
 
   async function handlePhotoFile(file: File) {
@@ -46,7 +102,7 @@ export default function AdminSpeakersPage() {
       setFormError("Échec de l’envoi de la photo. Réessayez.");
       return;
     }
-    setForm((f) => (f ? { ...f, photo_url: url } : f));
+    setForm((current) => (current ? { ...current, photo_url: url } : current));
   }
 
   async function handleSave() {
@@ -61,12 +117,9 @@ export default function AdminSpeakersPage() {
     setFormError(null);
     const payload = { ...form, name };
 
-    let ok: boolean;
-    if (form.id) {
-      ok = await update(form.id, payload);
-    } else {
-      ok = await create({ ...payload, display_order: rows.length });
-    }
+    const ok = form.id
+      ? await update(form.id, payload)
+      : await create({ ...payload, display_order: rows.length });
     setSaving(false);
 
     if (!ok) {
@@ -74,170 +127,229 @@ export default function AdminSpeakersPage() {
       return;
     }
     setForm(null);
+    toast.success(form.id ? "Intervenant mis à jour" : "Intervenant ajouté", {
+      description: name,
+    });
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h1 className="mt-4 font-serif text-3xl">Intervenants</h1>
-        </div>
-        <button onClick={openCreate} className="btn btn-dark btn-sm">
-          Ajouter un intervenant
-        </button>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Intervenants"
+        description="Personnalités et experts qui s&apos;expriment pendant la Convention."
+        actions={
+          <Button size="sm" onClick={openCreate}>
+            <PlusIcon className="h-4 w-4" />
+            Ajouter un intervenant
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Intervenants" value={rows.length} icon={MicIcon} />
+        <StatCard
+          label="Publiés"
+          value={rows.filter((speaker) => speaker.is_visible).length}
+          icon={EyeIcon}
+        />
+        <StatCard
+          label="Masqués"
+          value={rows.filter((speaker) => !speaker.is_visible).length}
+          icon={EyeOffIcon}
+        />
       </div>
 
-      {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {form && (
-        <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4">
-          {formError && <p className="text-sm text-danger">{formError}</p>}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <TextInput
-              label="Nom complet *"
-              value={form.name ?? ""}
-              onChange={(v) => setForm({ ...form, name: v })}
-            />
-            <TextInput
-              label="Poste / fonction"
-              value={form.position ?? ""}
-              onChange={(v) => setForm({ ...form, position: v })}
-            />
-            <TextInput
-              label="Organisation"
-              value={form.organization ?? ""}
-              onChange={(v) => setForm({ ...form, organization: v })}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink/50 mb-1.5">Photo</label>
-            <ImageUpload
-              onFile={handlePhotoFile}
-              currentUrl={form.photo_url}
-              error={uploading ? "Envoi en cours…" : null}
-              shape="circle"
-              label="Téléverser la photo"
-              hint="JPG ou PNG carré recommandé, 8 Mo max"
-            />
-          </div>
-          <TextInput
-            label="Biographie"
-            value={form.bio ?? ""}
-            onChange={(v) => setForm({ ...form, bio: v })}
-            textarea
-          />
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving || uploading}
-              className="btn btn-primary btn-sm disabled:opacity-60"
-            >
-              {saving || uploading ? "Enregistrement…" : "Enregistrer"}
-            </button>
-            <button
-              onClick={() => setForm(null)}
-              disabled={saving}
-              className="btn btn-secondary btn-sm"
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 space-y-3">
-        {loading ? (
-          <p className="text-sm text-ink/50">Chargement…</p>
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-ink/50">Aucun intervenant pour le moment.</p>
-        ) : (
-          rows.map((s) => (
-            <div
-              key={s.id}
-              className="card card-hover p-4 flex items-center justify-between gap-4 flex-wrap"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                {s.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={s.photo_url}
-                    alt=""
-                    className="h-10 w-10 rounded-full object-cover border border-line/10 shrink-0"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-blue/10 border border-blue/20 shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{s.name}</p>
-                  <p className="text-xs text-ink/45">
-                    {s.position}
-                    {s.organization ? ` · ${s.organization}` : ""}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => update(s.id, { is_visible: !s.is_visible })}
-                  className={`text-xs rounded-full px-3 py-1.5 border ${
-                    s.is_visible
-                      ? "border-success text-success"
-                      : "border-ink/20 text-ink/40"
-                  }`}
-                >
-                  {s.is_visible ? "Publié" : "Masqué"}
-                </button>
-                <button
-                  onClick={() => openEdit(s)}
-                  className="text-xs rounded-full border border-ink/20 px-3 py-1.5 hover:border-ink"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm(`Supprimer « ${s.name} » ?`)) remove(s.id);
-                  }}
-                  className="text-xs rounded-full border border-danger/30 text-danger px-3 py-1.5 hover:bg-danger/5"
-                >
-                  Supprimer
-                </button>
-              </div>
+      <Card className="gap-0 overflow-hidden border-line/10 py-0 shadow-card">
+        <ListToolbar
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="Nom, poste, organisation…"
+          count={filtered.length}
+          total={rows.length}
+        />
+        <CardContent className="px-0">
+          {loading ? (
+            <TableSkeleton columns={4} rows={5} />
+          ) : filtered.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={UsersIcon}
+                title={rows.length === 0 ? "Aucun intervenant" : "Aucun résultat"}
+                description={
+                  rows.length === 0
+                    ? "Ajoutez la première personnalité du programme."
+                    : "Modifiez votre recherche pour trouver un intervenant."
+                }
+                action={
+                  rows.length === 0 ? (
+                    <Button size="sm" onClick={openCreate}>
+                      <PlusIcon className="h-4 w-4" />
+                      Ajouter un intervenant
+                    </Button>
+                  ) : undefined
+                }
+              />
             </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6">Intervenant</TableHead>
+                    <TableHead>Poste</TableHead>
+                    <TableHead>Organisation</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((speaker) => (
+                    <TableRow key={speaker.id}>
+                      <TableCell className="pl-6">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            {speaker.photo_url && (
+                              <AvatarImage src={speaker.photo_url} alt={speaker.name} />
+                            )}
+                            <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                              {getInitials(speaker.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className="truncate font-medium text-foreground">{speaker.name}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {speaker.position ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {speaker.organization ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <UiBadge
+                          variant="outline"
+                          className={
+                            speaker.is_visible
+                              ? "border-success/40 text-success"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {speaker.is_visible ? "Publié" : "Masqué"}
+                        </UiBadge>
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <RowActions
+                          items={[
+                            {
+                              label: "Modifier",
+                              icon: PencilIcon,
+                              onSelect: () => openEdit(speaker),
+                            },
+                            {
+                              label: speaker.is_visible ? "Masquer" : "Publier",
+                              icon: speaker.is_visible ? EyeOffIcon : EyeIcon,
+                              onSelect: () => {
+                                update(speaker.id, { is_visible: !speaker.is_visible });
+                                toast.success(
+                                  speaker.is_visible ? "Intervenant masqué" : "Intervenant publié",
+                                  { description: speaker.name }
+                                );
+                              },
+                            },
+                            {
+                              label: "Supprimer",
+                              icon: Trash2Icon,
+                              tone: "destructive",
+                              onSelect: async () => {
+                                const ok = await remove(speaker.id);
+                                if (ok) {
+                                  toast.success("Intervenant supprimé", { description: speaker.name });
+                                } else {
+                                  toast.error("Suppression impossible");
+                                }
+                              },
+                              confirm: {
+                                title: `Supprimer ${speaker.name} ?`,
+                                description: "Cette action est définitive.",
+                                label: "Supprimer",
+                              },
+                            },
+                          ]}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-function TextInput({
-  label,
-  value,
-  onChange,
-  textarea,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  textarea?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-ink/50 mb-1.5">{label}</label>
-      {textarea ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={4}
-          className="input"
-        />
-      ) : (
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="input"
-        />
-      )}
+      <Dialog open={Boolean(form)} onOpenChange={(open) => !open && setForm(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {form?.id ? "Modifier l’intervenant" : "Ajouter un intervenant"}
+            </DialogTitle>
+            <DialogDescription>
+              Les informations apparaissent sur la page publique des intervenants.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="Nom complet"
+              required
+              value={form?.name ?? ""}
+              onChange={(value) => setForm({ ...form, name: value })}
+            />
+            <TextField
+              label="Poste / fonction"
+              value={form?.position ?? ""}
+              onChange={(value) => setForm({ ...form, position: value })}
+            />
+            <TextField
+              label="Organisation"
+              className="sm:col-span-2"
+              value={form?.organization ?? ""}
+              onChange={(value) => setForm({ ...form, organization: value })}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-xs text-ink/60">Photo</p>
+            <div className="rounded-lg border border-line/10 bg-muted/40 p-3">
+              <ImageUpload
+                onFile={handlePhotoFile}
+                currentUrl={form?.photo_url}
+                error={uploading ? "Envoi en cours…" : null}
+                shape="circle"
+                label="Téléverser la photo"
+                hint="JPG ou PNG carré recommandé, 8 Mo max"
+              />
+            </div>
+          </div>
+
+          <TextAreaField
+            label="Biographie"
+            value={form?.bio ?? ""}
+            onChange={(value) => setForm({ ...form, bio: value })}
+          />
+
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForm(null)} disabled={saving}>
+              Annuler
+            </Button>
+            <Button onClick={handleSave} disabled={saving || uploading}>
+              {saving || uploading ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

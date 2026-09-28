@@ -3,9 +3,15 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LogInIcon, ShieldCheckIcon } from "lucide-react";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type Mode = "email" | "code";
+type Mode = "code" | "email";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -17,8 +23,8 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleEmailSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -40,8 +46,8 @@ export default function AdminLoginPage() {
     router.push("/admin/dashboard");
   }
 
-  async function handleCodeSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCodeSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
     if (!name.trim() || !adminCode.trim()) {
       setError("Veuillez saisir votre nom et votre code administrateur.");
@@ -83,18 +89,18 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-ink text-paper flex items-center justify-center px-6 relative overflow-hidden">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink px-6 py-12 text-paper">
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 -right-20 h-96 w-96 rounded-full bg-blue/25 blur-[110px]"
+        className="pointer-events-none absolute -right-20 -top-32 h-96 w-96 rounded-full bg-blue/25 blur-[110px]"
       />
       <div
         aria-hidden
         className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-navy/30 blur-[100px]"
       />
 
-      <div className="w-full max-w-sm relative">
-        <div className="flex justify-center mb-6">
+      <div className="relative w-full max-w-md">
+        <div className="mb-6 flex justify-center">
           <span className="inline-block rounded-2xl bg-white px-6 py-4 shadow-lift ring-2 ring-blue/30">
             <Image
               src="/logo.png"
@@ -102,118 +108,114 @@ export default function AdminLoginPage() {
               width={360}
               height={126}
               priority
-              className="h-16 w-auto object-contain"
+              className="h-14 w-auto object-contain"
             />
           </span>
         </div>
-        <p className="font-sans text-xs tracking-wide2 uppercase text-blue text-center">
+        <p className="text-center text-xs uppercase tracking-wide2 text-blue">
           JCI Experience 2026
         </p>
-        <h1 className="mt-3 font-serif text-3xl text-center">Administration</h1>
+        <h1 className="mt-3 text-center text-2xl font-semibold">Administration</h1>
 
         {!isSupabaseConfigured && (
-          <p className="mt-6 text-xs text-paper/50 text-center leading-relaxed">
+          <p className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 text-center text-xs leading-relaxed text-paper/60">
             Supabase n&apos;est pas encore configuré sur cette instance. Ajoutez
-            NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY dans
-            .env.local, puis créez un utilisateur admin depuis Supabase Auth.
+            NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY dans .env.local, puis
+            créez un utilisateur admin depuis Supabase Auth.
           </p>
         )}
 
-        <div className="mt-8 grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-sm">
-          {(["code", "email"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => {
-                setMode(m);
-                setError(null);
-              }}
-              className={`rounded-full py-2 transition-colors ${
-                mode === m
-                  ? "bg-blue text-ink font-medium"
-                  : "text-paper/60 hover:text-paper"
-              }`}
-            >
-              {m === "code" ? "Code admin" : "Email"}
-            </button>
-          ))}
-        </div>
+        <Card className="mt-8 border-white/10 bg-white/5 shadow-lift backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-paper">
+              <ShieldCheckIcon className="h-4 w-4 text-blue" />
+              Accès réservé
+            </CardTitle>
+            <CardDescription className="text-paper/60">
+              Connectez-vous avec votre code administrateur ou votre email.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={mode} onValueChange={(value) => { setMode(value as Mode); setError(null); }}>
+              <TabsList className="grid w-full grid-cols-2 bg-white/5">
+                <TabsTrigger
+                  value="code"
+                  className="data-[state=active]:bg-blue data-[state=active]:text-ink"
+                >
+                  Code admin
+                </TabsTrigger>
+                <TabsTrigger
+                  value="email"
+                  className="data-[state=active]:bg-blue data-[state=active]:text-ink"
+                >
+                  Email
+                </TabsTrigger>
+              </TabsList>
 
-        {mode === "code" ? (
-          <form
-            onSubmit={handleCodeSubmit}
-            className="mt-4 space-y-4 rounded-xl2 border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
-          >
-            <div>
-              <label className="block text-xs text-paper/60 mb-1.5">
-                Nom complet
-              </label>
-              <input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex : Nom Prénom"
-                autoComplete="name"
-                className="w-full rounded-xl2 bg-white/5 border border-white/10 p-3.5 text-sm outline-none focus:border-blue focus:ring-4 focus:ring-blue/20 transition-all placeholder:text-paper/30"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-paper/60 mb-1.5">
-                Code administrateur
-              </label>
-              <input
-                required
-                value={adminCode}
-                onChange={(e) => setAdminCode(e.target.value.toUpperCase())}
-                placeholder="Ex : JCI-2026-XXXX"
-                autoComplete="off"
-                className="w-full rounded-xl2 bg-white/5 border border-white/10 p-3.5 text-sm font-mono uppercase outline-none focus:border-blue focus:ring-4 focus:ring-blue/20 transition-all placeholder:text-paper/30"
-              />
-            </div>
-            {error && <p className="text-xs text-red-400">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary btn-block"
-            >
-              {loading ? "Connexion…" : "Accéder à l'administration"}
-            </button>
-          </form>
-        ) : (
-          <form
-            onSubmit={handleEmailSubmit}
-            className="mt-4 space-y-4 rounded-xl2 border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
-          >
-            <div>
-              <label className="block text-xs text-paper/60 mb-1.5">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl2 bg-white/5 border border-white/10 p-3.5 text-sm outline-none focus:border-blue focus:ring-4 focus:ring-blue/20 transition-all placeholder:text-paper/30"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-paper/60 mb-1.5">Mot de passe</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl2 bg-white/5 border border-white/10 p-3.5 text-sm outline-none focus:border-blue focus:ring-4 focus:ring-blue/20 transition-all"
-              />
-            </div>
-            {error && <p className="text-xs text-red-400">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary btn-block"
-            >
-              {loading ? "Connexion…" : "Se connecter"}
-            </button>
-          </form>
-        )}
+              <TabsContent value="code" className="mt-4">
+                <form onSubmit={handleCodeSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-paper/60">Nom complet</Label>
+                    <Input
+                      required
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Ex : Nom Prénom"
+                      autoComplete="name"
+                      className="border-white/10 bg-white/5 text-paper placeholder:text-paper/30 focus-visible:ring-blue/30"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-paper/60">Code administrateur</Label>
+                    <Input
+                      required
+                      value={adminCode}
+                      onChange={(event) => setAdminCode(event.target.value.toUpperCase())}
+                      placeholder="Ex : JCI-2026-XXXX"
+                      autoComplete="off"
+                      className="border-white/10 bg-white/5 font-mono uppercase text-paper placeholder:font-sans placeholder:normal-case placeholder:text-paper/30 focus-visible:ring-blue/30"
+                    />
+                  </div>
+                  {error && <p className="text-xs text-red-400">{error}</p>}
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    <LogInIcon className="h-4 w-4" />
+                    {loading ? "Connexion…" : "Accéder à l’administration"}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="email" className="mt-4">
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-paper/60">Email</Label>
+                    <Input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="border-white/10 bg-white/5 text-paper placeholder:text-paper/30 focus-visible:ring-blue/30"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-paper/60">Mot de passe</Label>
+                    <Input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="border-white/10 bg-white/5 text-paper focus-visible:ring-blue/30"
+                    />
+                  </div>
+                  {error && <p className="text-xs text-red-400">{error}</p>}
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    <LogInIcon className="h-4 w-4" />
+                    {loading ? "Connexion…" : "Se connecter"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );

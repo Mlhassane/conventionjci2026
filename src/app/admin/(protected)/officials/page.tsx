@@ -1,10 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  PencilIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useTable } from "@/lib/admin/useTable";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import ImageUpload from "@/components/form/ImageUpload";
 import { Official } from "@/lib/types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge as UiBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { EmptyState } from "@/components/admin/ui/empty-state";
+import { TextField } from "@/components/admin/ui/form-fields";
+import { ListToolbar } from "@/components/admin/ui/list-toolbar";
+import { PageHeader } from "@/components/admin/ui/page-header";
+import { RowActions } from "@/components/admin/ui/row-actions";
+import { StatCard, TableSkeleton } from "@/components/admin/ui/stat-card";
 
 const EMPTY: Partial<Official> = {
   name: "",
@@ -15,14 +50,40 @@ const EMPTY: Partial<Official> = {
   is_visible: true,
 };
 
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+}
+
 export default function AdminOfficialsPage() {
   const { rows, loading, error, create, update, remove } = useTable<Official>(
     "officials",
     "display_order"
   );
   const [form, setForm] = useState<Partial<Official> | null>(null);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((official) =>
+      [official.name, official.title, official.organization]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [rows, search]);
+
+  function openCreate() {
+    setFormError(null);
+    setForm(EMPTY);
+  }
 
   async function handlePhotoFile(file: File) {
     setFormError(null);
@@ -38,60 +99,221 @@ export default function AdminOfficialsPage() {
   }
 
   async function handleSave() {
-    if (!form || uploading) return;
-    if (!form.name?.trim()) {
+    if (!form || saving) return;
+    const name = (form.name ?? "").trim();
+    if (!name) {
       setFormError("Le nom est obligatoire.");
       return;
     }
 
+    setSaving(true);
     setFormError(null);
     const ok = form.id
-      ? await update(form.id, {
-          ...form,
-          display_order: form.display_order ?? rows.length,
-        })
-      : await create({ ...form, display_order: rows.length });
+      ? await update(form.id, { ...form, name, display_order: form.display_order ?? rows.length })
+      : await create({ ...form, name, display_order: rows.length });
+    setSaving(false);
 
-    if (ok) setForm(null);
-    else setFormError("Une erreur est survenue. Réessayez.");
+    if (!ok) {
+      setFormError("Une erreur est survenue. Réessayez.");
+      return;
+    }
+    setForm(null);
+    toast.success(form.id ? "Officiel mis à jour" : "Officiel ajouté", { description: name });
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h1 className="mt-4 font-serif text-3xl">Officiels de l&apos;événement</h1>
-          <p className="mt-2 text-sm text-ink/55">
-            Comité d&apos;organisation, parrains et autorités — affichés sur la
-            page Infos pratiques.
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setFormError(null);
-            setForm(EMPTY);
-          }}
-          className="btn btn-dark btn-sm"
-        >
-          Ajouter un officiel
-        </button>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Officiels de l’événement"
+        description="Comité d’organisation, parrains et autorités — affichés sur la page Infos pratiques."
+        actions={
+          <Button size="sm" onClick={openCreate}>
+            <PlusIcon className="h-4 w-4" />
+            Ajouter un officiel
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Officiels" value={rows.length} icon={ShieldCheckIcon} />
+        <StatCard
+          label="Publiés"
+          value={rows.filter((official) => official.is_visible).length}
+          icon={EyeIcon}
+        />
+        <StatCard
+          label="Masqués"
+          value={rows.filter((official) => !official.is_visible).length}
+          icon={EyeOffIcon}
+        />
       </div>
 
-      {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {form && (
-        <div className="mt-6 rounded-xl2 border border-blue/40 bg-blue/5 p-6 space-y-4 shadow-card">
-          {formError && <p className="text-sm text-danger">{formError}</p>}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <TextInput label="Nom complet *" value={form.name ?? ""} onChange={(v) => setForm({ ...form, name: v })} />
-            <TextInput label="Fonction / titre" value={form.title ?? ""} onChange={(v) => setForm({ ...form, title: v })} />
-            <TextInput label="Organisation" value={form.organization ?? ""} onChange={(v) => setForm({ ...form, organization: v })} />
-            <div>
-              <label className="block text-xs text-ink/50 mb-1.5">Photo</label>
+      <Card className="gap-0 overflow-hidden border-line/10 py-0 shadow-card">
+        <ListToolbar
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="Nom, fonction, organisation…"
+          count={filtered.length}
+          total={rows.length}
+        />
+        <CardContent className="px-0">
+          {loading ? (
+            <TableSkeleton columns={4} rows={5} />
+          ) : filtered.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={ShieldCheckIcon}
+                title={rows.length === 0 ? "Aucun officiel" : "Aucun résultat"}
+                description={
+                  rows.length === 0
+                    ? "Ajoutez le premier membre du comité d’organisation."
+                    : "Modifiez votre recherche pour trouver un officiel."
+                }
+                action={
+                  rows.length === 0 ? (
+                    <Button size="sm" onClick={openCreate}>
+                      <PlusIcon className="h-4 w-4" />
+                      Ajouter un officiel
+                    </Button>
+                  ) : undefined
+                }
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6">Officiel</TableHead>
+                    <TableHead>Fonction</TableHead>
+                    <TableHead>Organisation</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((official) => (
+                    <TableRow key={official.id}>
+                      <TableCell className="pl-6">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            {official.photo_url && (
+                              <AvatarImage src={official.photo_url} alt={official.name} />
+                            )}
+                            <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                              {getInitials(official.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className="truncate font-medium text-foreground">{official.name}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {official.title ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {official.organization ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <UiBadge
+                          variant="outline"
+                          className={
+                            official.is_visible
+                              ? "border-success/40 text-success"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {official.is_visible ? "Publié" : "Masqué"}
+                        </UiBadge>
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <RowActions
+                          items={[
+                            {
+                              label: "Modifier",
+                              icon: PencilIcon,
+                              onSelect: () => {
+                                setFormError(null);
+                                setForm(official);
+                              },
+                            },
+                            {
+                              label: official.is_visible ? "Masquer" : "Publier",
+                              icon: official.is_visible ? EyeOffIcon : EyeIcon,
+                              onSelect: () => {
+                                update(official.id, { is_visible: !official.is_visible });
+                                toast.success(
+                                  official.is_visible ? "Officiel masqué" : "Officiel publié",
+                                  { description: official.name }
+                                );
+                              },
+                            },
+                            {
+                              label: "Supprimer",
+                              icon: Trash2Icon,
+                              tone: "destructive",
+                              onSelect: async () => {
+                                const ok = await remove(official.id);
+                                if (ok) {
+                                  toast.success("Officiel supprimé", { description: official.name });
+                                } else {
+                                  toast.error("Suppression impossible");
+                                }
+                              },
+                              confirm: {
+                                title: `Supprimer ${official.name} ?`,
+                                description: "Cette action est définitive.",
+                                label: "Supprimer",
+                              },
+                            },
+                          ]}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={Boolean(form)} onOpenChange={(open) => !open && setForm(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{form?.id ? "Modifier l’officiel" : "Ajouter un officiel"}</DialogTitle>
+            <DialogDescription>
+              Ces profils sont visibles sur la page Infos pratiques du site.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="Nom complet"
+              required
+              value={form?.name ?? ""}
+              onChange={(value) => setForm({ ...form, name: value })}
+            />
+            <TextField
+              label="Fonction / titre"
+              value={form?.title ?? ""}
+              onChange={(value) => setForm({ ...form, title: value })}
+            />
+            <TextField
+              label="Organisation"
+              className="sm:col-span-2"
+              value={form?.organization ?? ""}
+              onChange={(value) => setForm({ ...form, organization: value })}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-xs text-ink/60">Photo</p>
+            <div className="rounded-lg border border-line/10 bg-muted/40 p-3">
               <ImageUpload
                 onFile={handlePhotoFile}
-                currentUrl={form.photo_url}
+                currentUrl={form?.photo_url}
                 error={uploading ? "Envoi en cours…" : null}
                 shape="circle"
                 label="Téléverser la photo"
@@ -99,83 +321,19 @@ export default function AdminOfficialsPage() {
               />
             </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              disabled={uploading}
-              className="btn btn-primary btn-sm"
-            >
-              {uploading ? "Envoi…" : "Enregistrer"}
-            </button>
-            <button
-              onClick={() => setForm(null)}
-              disabled={uploading}
-              className="btn btn-secondary btn-sm"
-            >
+
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForm(null)} disabled={saving}>
               Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 space-y-3">
-        {loading ? (
-          <p className="text-sm text-ink/50">Chargement…</p>
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-ink/50">Aucun officiel pour le moment.</p>
-        ) : (
-          rows.map((o) => (
-            <div key={o.id} className="card card-hover p-4 flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <p className="font-medium">{o.name}</p>
-                <p className="text-xs text-ink/45">
-                  {[o.title, o.organization].filter(Boolean).join(" · ")}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => update(o.id, { is_visible: !o.is_visible })}
-                  className={`text-xs rounded-full px-3 py-1.5 border ${
-                    o.is_visible ? "border-success text-success" : "border-ink/20 text-ink/40"
-                  }`}
-                >
-                  {o.is_visible ? "Publié" : "Masqué"}
-                </button>
-                <button onClick={() => setForm(o)} className="text-xs rounded-full border border-ink/20 px-3 py-1.5 hover:border-ink">
-                  Modifier
-                </button>
-                <button
-                  onClick={() => remove(o.id)}
-                  className="text-xs rounded-full border border-danger/30 text-danger px-3 py-1.5 hover:bg-danger/5"
-                >
-                  Supprimer
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TextInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-ink/50 mb-1.5">{label}</label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input"
-      />
+            </Button>
+            <Button onClick={handleSave} disabled={saving || uploading}>
+              {saving || uploading ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

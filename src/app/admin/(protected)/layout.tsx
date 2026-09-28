@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import AdminShell from "@/components/admin/AdminShell";
+import { AdminToaster } from "@/components/admin/ui/admin-toaster";
 
 export default function ProtectedAdminLayout({
   children,
@@ -86,5 +87,10 @@ export default function ProtectedAdminLayout({
     );
   }
 
-  return <AdminShell>{children}</AdminShell>;
+  return (
+    <>
+      <AdminShell>{children}</AdminShell>
+      <AdminToaster />
+    </>
+  );
 }
