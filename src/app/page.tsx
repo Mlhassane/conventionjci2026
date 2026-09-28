@@ -320,7 +320,7 @@ export default async function HomePage() {
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <ServiceCard
-              href="/visuel"
+              href="/j-y-seri"
               icon={<SparkGlyph />}
               title="Visuel officiel"
               text="Affiche ta participation et partage-la partout avec ton réseau."
