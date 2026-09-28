@@ -88,20 +88,6 @@ export default function Nav() {
             })}
           </nav>
 
-          <div className="hidden lg:flex items-center gap-2 shrink-0">
-            <Link
-              href="/espace"
-              className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-[13px] font-semibold whitespace-nowrap transition-all select-none border ${
-                pathname?.startsWith("/espace")
-                  ? "bg-ink text-paper border-ink"
-                  : "border-ink/20 text-ink hover:border-ink"
-              }`}
-            >
-              Participant
-            </Link>
-            
-          </div>
-
           <button
             aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
             aria-expanded={open}
@@ -156,16 +142,6 @@ export default function Nav() {
                       </Link>
                     );
                   })}
-                </div>
-                <div className="mt-2.5 grid gap-2">
-                  <Link
-                    href="/espace"
-                    onClick={() => setOpen(false)}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-ink/20 px-6 py-3 text-sm font-semibold hover:border-ink transition-colors"
-                  >
-                    Participant
-                  </Link>
-                 
                 </div>
               </div>
             </motion.nav>

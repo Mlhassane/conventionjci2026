@@ -15,7 +15,7 @@ import {
   canvasToBlob,
 } from "@/lib/canvas/loadImage";
 import { track } from "@/lib/analytics";
-import { useEspaceProfile } from "@/lib/espace";
+import { saveJyseraiParticipation } from "@/lib/jyseraiService";
 
 const PRESET_MESSAGES = [
   "Je viens rencontrer et connecter.",
@@ -42,27 +42,56 @@ export default function VisuelPage() {
   const [useCustom, setUseCustom] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pngUrl, setPngUrl] = useState<string | null>(null);
+  const [photoScale, setPhotoScale] = useState(1);
+  const [photoOffsetX, setPhotoOffsetX] = useState(0);
+  const [photoOffsetY, setPhotoOffsetY] = useState(0);
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "offline">("idle");
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const prefilledRef = useRef(false);
-
-  // Espace requis : sans code convention, retour vers la connexion.
-  const { status, profile } = useEspaceProfile(isJyserai ? "/j-y-seri" : "/visuel");
-
-  // Pré-remplit depuis le profil connecté (dont la photo de l'espace).
-  useEffect(() => {
-    if (status !== "ready" || !profile || prefilledRef.current) return;
-    prefilledRef.current = true;
-    setName(profile.name);
-    setCity(profile.city ?? "");
-    setOrganization(profile.organization ?? "");
-    if (profile.photo_url) {
-      loadImageFromUrl(profile.photo_url)
-        .then((img) => setPhotoImg(img))
-        .catch(() => {});
-    }
-  }, [status, profile]);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const finalMessage = useCustom ? customMessage.trim() : selectedMessage;
+
+  // Live preview for the J'y serai editor. The regular /visuel page keeps
+  // its explicit generate flow; the participation page updates immediately.
+  useEffect(() => {
+    if (!isJyserai) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const canvas = previewCanvasRef.current;
+      if (!canvas) return;
+      try {
+        if (document.fonts?.ready) await document.fonts.ready;
+        if (cancelled) return;
+        await drawJyseraiPoster(canvas, {
+          name: name.trim(),
+          city: city.trim(),
+          organization: organization.trim(),
+          message: finalMessage || PRESET_MESSAGES[0],
+          photo: photoImg,
+          photoScale,
+          photoOffsetX,
+          photoOffsetY,
+          hashtag: HASHTAG,
+        });
+      } catch {
+        // The form remains usable if the preview cannot be drawn yet.
+      }
+    }, 60);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    isJyserai,
+    name,
+    city,
+    organization,
+    finalMessage,
+    photoImg,
+    photoScale,
+    photoOffsetX,
+    photoOffsetY,
+  ]);
 
   function validate() {
     const next: Record<string, string> = {};
@@ -75,6 +104,7 @@ export default function VisuelPage() {
 
   async function handleGenerate() {
     if (!validate()) return;
+    setSaveState("idle");
     setStep("loading");
     try {
       const photo = photoImg;
@@ -87,6 +117,9 @@ export default function VisuelPage() {
         organization: organization.trim(),
         message: finalMessage || PRESET_MESSAGES[0],
         photo,
+        photoScale,
+        photoOffsetX,
+        photoOffsetY,
         hashtag: HASHTAG,
       };
 
@@ -99,6 +132,23 @@ export default function VisuelPage() {
           location: "MARADI",
         });
       }
+
+      if (isJyserai) {
+        const blob = await canvasToBlob(canvas);
+        if (blob) {
+          const result = await saveJyseraiParticipation({
+            name: name.trim(),
+            city: city.trim(),
+            organization: organization.trim(),
+            message: finalMessage || PRESET_MESSAGES[0],
+            imageBlob: blob,
+          });
+          setSaveState(result.saved ? "saved" : "offline");
+        } else {
+          setSaveState("offline");
+        }
+      }
+
       const url = canvas.toDataURL("image/png");
       setPngUrl(url);
       track("poster_generated", { has_photo: Boolean(photoImg) });
@@ -122,10 +172,39 @@ export default function VisuelPage() {
     track("poster_downloaded");
   }
 
-  function handleWhatsapp() {
+  async function handleWhatsapp() {
     const message = `🗣️ Je participe à la Convention JCI Niger 2026 !\n\n📍 Maradi\n📅 9–10 octobre\n\nEt toi, tu viens ?\n\n${HASHTAG}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
     track("whatsapp_share_clicked");
+    if (!canvasRef.current) return;
+
+    const blob = await canvasToBlob(canvasRef.current);
+    if (!blob) return;
+    const file = new File(
+      [blob],
+      `${isJyserai ? "j-y-seri" : "visuel"}-jci-convention-2026-${slugify(name)}.png`,
+      { type: "image/png" }
+    );
+
+    // Mobile browsers can attach the generated PNG through the native share
+    // sheet. WhatsApp is selected by the user from that sheet.
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: "J’y serai — Convention JCI Niger 2026",
+          text: message,
+        });
+        track("poster_shared");
+        return;
+      } catch (error) {
+        if ((error as { name?: string })?.name === "AbortError") return;
+      }
+    }
+
+    // Desktop browsers cannot attach a local file through wa.me. Download it
+    // first, then open WhatsApp so the user can attach the image manually.
+    handleDownload();
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   }
 
   async function handleShare() {
@@ -147,17 +226,6 @@ export default function VisuelPage() {
       }
     }
     handleDownload();
-  }
-
-  if (status !== "ready") {
-    return (
-      <main className="bg-canvas min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center px-6">
-          <div className="h-12 w-12 rounded-full border-2 border-blue border-t-transparent animate-spin" />
-          <p className="font-serif text-xl">Vérification de votre accès…</p>
-        </div>
-      </main>
-    );
   }
 
   return (
@@ -197,6 +265,26 @@ export default function VisuelPage() {
               exit={{ opacity: 0 }}
               className="mt-8 card p-6 md:p-8 shadow-card space-y-6"
             >
+              {isJyserai && (
+                <div className="rounded-xl2 border border-blue/20 bg-blue/[0.03] p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold">Aperçu en direct</p>
+                    <span className="rounded-full bg-blue/10 px-2.5 py-1 text-[11px] font-medium text-blue-dark">
+                      Modification
+                    </span>
+                  </div>
+                  <canvas
+                    ref={previewCanvasRef}
+                    className="mx-auto block w-full max-w-sm rounded-xl2 border border-line/10 shadow-card"
+                    aria-label="Aperçu du visuel J'y serai"
+                  />
+                  <p className="mt-3 text-center text-xs text-ink/45">
+                    L’aperçu se met à jour dès que vous changez la photo ou les
+                    réglages.
+                  </p>
+                </div>
+              )}
+
               {errors.global && (
                 <div className="rounded-xl2 border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
                   {errors.global}
@@ -243,67 +331,76 @@ export default function VisuelPage() {
                       .catch(() => setPhotoImg(null));
                   }}
                 />
-                {profile?.photo_url && (
-                  <p className="mt-1.5 text-xs text-ink/45">
-                    Pré-remplie depuis votre espace — vous pouvez la changer.
-                  </p>
-                )}
               </Field>
 
-              <Field label="Votre message" error={errors.customMessage}>
-                <div className="space-y-2">
-                  {PRESET_MESSAGES.map((m) => (
-                    <label
-                      key={m}
-                      className={`flex items-start gap-3 rounded-xl2 border p-3.5 cursor-pointer transition-all duration-150 ${
-                        !useCustom && selectedMessage === m
-                          ? "border-blue bg-blue/10 shadow-card"
-                          : "border-line/15 bg-white hover:border-blue/40 hover:bg-blue/5"
-                      }`}
+              {isJyserai && (
+                <div className="space-y-4 rounded-xl2 border border-line/10 bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide2 text-ink/50">
+                      Ajuster la photo
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhotoScale(1);
+                        setPhotoOffsetX(0);
+                        setPhotoOffsetY(0);
+                      }}
+                      className="text-xs font-medium text-blue-dark hover:underline"
                     >
-                      <input
-                        type="radio"
-                        name="message"
-                        className="mt-1 accent-blue"
-                        checked={!useCustom && selectedMessage === m}
-                        onChange={() => {
-                          setUseCustom(false);
-                          setSelectedMessage(m);
-                        }}
-                      />
-                      <span className="text-sm">{m}</span>
-                    </label>
-                  ))}
-                  <label
-                    className={`flex items-start gap-3 rounded-xl2 border p-3.5 cursor-pointer transition-all duration-150 ${
-                      useCustom
-                        ? "border-blue bg-blue/10 shadow-card"
-                        : "border-line/15 bg-white hover:border-blue/40 hover:bg-blue/5"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="message"
-                      className="mt-1 accent-blue"
-                      checked={useCustom}
-                      onChange={() => setUseCustom(true)}
-                    />
-                    <span className="text-sm w-full">
-                      Mon propre message
-                      {useCustom && (
-                        <textarea
-                          value={customMessage}
-                          onChange={(e) => setCustomMessage(e.target.value)}
-                          placeholder="Écrivez votre message…"
-                          maxLength={90}
-                          rows={2}
-                          className="input mt-2 p-2.5"
-                        />
-                      )}
+                      Réinitialiser
+                    </button>
+                  </div>
+                  <label className="block text-xs text-ink/60">
+                    <span className="mb-1.5 flex justify-between">
+                      <span>Taille</span>
+                      <span>{Math.round(photoScale * 100)}%</span>
                     </span>
+                    <input
+                      aria-label="Taille de la photo"
+                      type="range"
+                      min="0.5"
+                      max="1.4"
+                      step="0.05"
+                      value={photoScale}
+                      onChange={(e) => setPhotoScale(Number(e.target.value))}
+                      className="w-full accent-[#0097D7]"
+                    />
+                  </label>
+                  <label className="block text-xs text-ink/60">
+                    <span className="mb-1.5 flex justify-between">
+                      <span aria-hidden="true">↔</span>
+                      <span>{photoOffsetX > 0 ? `+${photoOffsetX}` : photoOffsetX} px</span>
+                    </span>
+                    <input
+                      aria-label="Déplacement horizontal de la photo"
+                      type="range"
+                      min="-120"
+                      max="120"
+                      step="5"
+                      value={photoOffsetX}
+                      onChange={(e) => setPhotoOffsetX(Number(e.target.value))}
+                      className="w-full accent-[#0097D7]"
+                    />
+                  </label>
+                  <label className="block text-xs text-ink/60">
+                    <span className="mb-1.5 flex justify-between">
+                      <span aria-hidden="true">↕</span>
+                      <span>{photoOffsetY > 0 ? `+${photoOffsetY}` : photoOffsetY} px</span>
+                    </span>
+                    <input
+                      aria-label="Déplacement vertical de la photo"
+                      type="range"
+                      min="-200"
+                      max="200"
+                      step="5"
+                      value={photoOffsetY}
+                      onChange={(e) => setPhotoOffsetY(Number(e.target.value))}
+                      className="w-full accent-[#0097D7]"
+                    />
                   </label>
                 </div>
-              </Field>
+              )}
 
               <button
                 onClick={handleGenerate}
@@ -343,10 +440,23 @@ export default function VisuelPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={pngUrl}
-                  alt={isJyserai ? "J'y serai — Convention JCI Niger 2026" : "Visuel Convention JCI Niger 2026"}
+                  alt={isJyserai ? "j'y — Convention JCI Niger 2026" : "Visuel Convention JCI Niger 2026"}
                   className="w-full"
                 />
               </div>
+              {isJyserai && (
+                <p
+                  className={`mt-4 text-center text-xs ${
+                    saveState === "saved" ? "text-success" : "text-ink/45"
+                  }`}
+                >
+                  {saveState === "saved"
+                    ? "✓ Votre participation et votre image ont été enregistrées."
+                    : saveState === "offline"
+                      ? "Image générée, mais l’enregistrement en ligne est indisponible."
+                      : ""}
+                </p>
+              )}
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <button onClick={handleDownload} className="btn btn-primary">
@@ -365,6 +475,10 @@ export default function VisuelPage() {
                   Modifier
                 </button>
               </div>
+              <p className="mt-3 text-center text-xs text-ink/45">
+                Sur téléphone, choisis WhatsApp dans le menu de partage pour
+                joindre l’image.
+              </p>
 
               <Link
                 href="/badge"

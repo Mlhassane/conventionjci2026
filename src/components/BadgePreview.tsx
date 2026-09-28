@@ -26,7 +26,7 @@ function loadImageFromUrl(src: string): Promise<HTMLImageElement> {
 
 /**
  * Renders an official badge PNG from a badge record (admin-generated) and
- * offers download. Used in the participant space and the badge lookup page.
+ * offers download. Used in the admin badge tools and the badge lookup page.
  */
 export default function BadgePreview({ badge }: { badge: BadgePreviewData }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -18,6 +18,16 @@ export type EventSettings = {
   updated_at?: string;
 };
 
+export type Participation = {
+  id: string;
+  name: string;
+  city: string | null;
+  organization: string | null;
+  message: string | null;
+  image_url: string | null;
+  created_at: string;
+};
+
 export type Participant = {
   id: string;
   name: string;
@@ -26,9 +36,9 @@ export type Participant = {
   role: string | null;
   photo_url: string | null;
   is_public: boolean;
-  /** Phone number used for espace login (never exposed to anon). */
+  /** Phone number used by the organization (never exposed to anon). */
   phone: string | null;
-  /** Unique code assigned by the admin after payment, used for espace login. */
+  /** Unique convention code assigned by the admin. */
   member_code: string | null;
   /** True only for the explicitly linked administrator account. */
   is_admin?: boolean;

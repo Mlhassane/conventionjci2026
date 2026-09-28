@@ -55,7 +55,7 @@ src/
       (protected)/               Route group: dashboard, participants, badges,
                                   partners, speakers, officials, programme,
                                   infos, analytics, settings
-    espace/                      Participant code login + participant space
+    j-y-seri/                    Public participation visual generator
   components/                    Nav, BottomNav, Footer, form fields, admin shell
   lib/
     canvas/                      Poster & badge PNG generation (Canvas API + QR)
@@ -93,17 +93,18 @@ Most event-specific content lives in Supabase and is editable from `/admin`. The
 | Practical information | `practical_information` | `/admin/infos` |
 | Participants & badges | `participants`, `badges` | `/admin/participants`, `/admin/badges` |
 | Event officials | `officials` | `/admin/officials` |
+| Public J’y serai generations | `participations` | `/admin/participations` |
 
 ---
 
 ## 6. Poster & badge generation
 
-Both `/visuel` and `/badge` are Canvas API generators that run in the browser. They require a participant session obtained from `/espace` with the convention code and full name:
+Both `/j-y-seri`, `/visuel` and `/badge` are Canvas API generators that run in the browser and are open to every visitor:
 
 - `/visuel` draws a 1080×1350 vertical poster with the participant's photo, name, city/organization, and a chosen or custom message, branded with the Convention identity and `#MaConventionJCI2026`.
-- `/badge` draws a 1080×1600 badge with a unique code (`JCI-2026-XXXXXX`) and an embedded QR code linking to `/badge/verify/[code]`. The badge is linked to the authenticated participant record when Supabase is available.
+- `/badge` draws a 1080×1600 badge with a unique code (`JCI-2026-XXXXXX`) and an embedded QR code linking to `/badge/verify/[code]`. When Supabase is configured, generation also creates a public participant/badge record for verification.
 
-The PNG generation itself is client-side and does not require a server round-trip. Analytics events are written to Supabase when the project is configured.
+The PNG generation itself is client-side. When a visitor generates a `/j-y-seri` visual, the name, city, organization, message and generated PNG are also saved through Supabase (Storage + `participations` table) so the organization can review them in the admin.
 
 ---
 

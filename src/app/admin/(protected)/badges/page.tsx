@@ -78,7 +78,7 @@ export default function AdminBadgesPage() {
           <h1 className="mt-4 font-serif text-3xl">Badges</h1>
           <p className="mt-2 text-sm text-ink/55">
             L&apos;organisation génère les badges officiels, puis les remet aux
-            participants. Ils les retrouvent dans leur espace.
+            participants. Chaque badge peut être vérifié via son QR code.
           </p>
         </div>
         {pending.length > 0 && (

@@ -9,8 +9,8 @@ export type NewBadgeInput = {
   /** Public URL of the participant photo, when one is already available. */
   photoUrl?: string;
   /**
-   * When the badge is generated from a logged-in participant espace, link it
-   * to the existing participant row instead of creating a duplicate.
+   * When the badge is generated from a participant record, link it to that
+   * record instead of creating a duplicate.
    */
   participantId?: string;
 };

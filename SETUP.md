@@ -126,6 +126,7 @@ Buckets Storage déjà prévus : `photos`, `posters`, `badges`, `partners`, `spe
 - [ ] `npm run dev` → homepage 200
 - [ ] `/admin` : login code ou email fonctionne
 - [ ] Une modification admin apparaît sur le site public (force-dynamic)
+- [ ] Générer un `/j-y-seri` public et vérifier l’enregistrement dans `/admin/participations`
 - [ ] Upload logo/photo admin OK (buckets)
 - [ ] Les secrets partagés ont été rotatés avant la production
 

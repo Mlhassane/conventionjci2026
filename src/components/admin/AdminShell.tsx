@@ -9,6 +9,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 const LINKS = [
   { href: "/admin/dashboard", label: "Vue d'ensemble", icon: GridIcon },
   { href: "/admin/participants", label: "Participants", icon: UsersIcon },
+  { href: "/admin/participations", label: "J’y serai", icon: SparkIcon },
   { href: "/admin/badges", label: "Badges", icon: BadgeIcon },
   { href: "/admin/partners", label: "Partenaires", icon: BriefcaseIcon },
   { href: "/admin/speakers", label: "Intervenants", icon: MicIcon },
@@ -158,6 +159,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 }
 
 /* ------------------------------ Icônes ------------------------------ */
+
+function SparkIcon({ className }: { className?: string }) {
+  return (
+    <Base className={className}>
+      <path d="M12 3.5 13.6 9l5.4 1.6-5.4 1.7L12 18l-1.6-5.7L5 10.6 10.4 9 12 3.5Z" />
+      <path d="m18.5 15 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z" />
+    </Base>
+  );
+}
 
 function Base({
   className,

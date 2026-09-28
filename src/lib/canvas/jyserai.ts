@@ -7,6 +7,10 @@ export type JyseraiPosterData = {
   organization: string;
   message: string;
   photo: HTMLImageElement | null;
+  /** Live-preview adjustments: scale is relative to the default photo size. */
+  photoScale?: number;
+  photoOffsetX?: number;
+  photoOffsetY?: number;
   hashtag: string;
 };
 
@@ -20,6 +24,10 @@ const COLORS = {
   blueLight: "#33B5E8",
   gold: "#EFC40F",
 };
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+}
 
 /**
  * J'y serai template: the supplied artwork stays visible without a panel.
@@ -41,10 +49,19 @@ export async function drawJyseraiPoster(
   const drawHeight = background.height * scale;
   ctx.drawImage(background, (WIDTH - drawWidth) / 2, (HEIGHT - drawHeight) / 2, drawWidth, drawHeight);
 
-  // Profile photo in the upper-right corner, away from the central message.
-  const photoCenterX = 878;
-  const photoCenterY = 238;
-  const photoRadius = 98;
+  // Profile photo in the right side, vertically centered. The live editor
+  // can adjust the size and offsets without changing the final generator.
+  const photoRadius = Math.round(200 * clamp(data.photoScale ?? 1, 0.5, 1.4));
+  const photoCenterX = clamp(
+    915 + (data.photoOffsetX ?? 0),
+    photoRadius + 24,
+    WIDTH - photoRadius - 24
+  );
+  const photoCenterY = clamp(
+    HEIGHT / 2 + (data.photoOffsetY ?? 0),
+    photoRadius + 24,
+    HEIGHT - photoRadius - 24
+  );
   ctx.save();
   ctx.beginPath();
   ctx.arc(photoCenterX, photoCenterY, photoRadius, 0, Math.PI * 2);
@@ -86,25 +103,5 @@ export async function drawJyseraiPoster(
   ctx.lineWidth = 6;
   ctx.beginPath();
   ctx.arc(photoCenterX, photoCenterY, photoRadius, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // The only central text: no panel, no extra background block.
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = sansFont(92, 800);
-  ctx.shadowColor = "rgba(0,0,0,0.48)";
-  ctx.shadowBlur = 14;
-  ctx.shadowOffsetY = 5;
-  ctx.fillStyle = COLORS.paper;
-  ctx.fillText("J’y serai", WIDTH / 2, 520);
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-
-  ctx.strokeStyle = COLORS.gold;
-  ctx.lineWidth = 6;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(WIDTH / 2 - 115, 600);
-  ctx.lineTo(WIDTH / 2 + 115, 600);
   ctx.stroke();
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import PhotoUpload from "@/components/form/PhotoUpload";
@@ -8,12 +8,10 @@ import Confetti from "@/components/Confetti";
 import { drawBadge } from "@/lib/canvas/badge";
 import {
   loadImageFromFile,
-  loadImageFromUrl,
   canvasToBlob,
 } from "@/lib/canvas/loadImage";
 import { track } from "@/lib/analytics";
 import { createBadgeRecord } from "@/lib/badgeService";
-import { useEspaceProfile } from "@/lib/espace";
 
 const ROLES = [
   "Participant",
@@ -39,28 +37,7 @@ export default function BadgePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pngUrl, setPngUrl] = useState<string | null>(null);
   const [uniqueCode, setUniqueCode] = useState<string | null>(null);
-  const [participantId, setParticipantId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const prefilledRef = useRef(false);
-
-  // Espace requis : sans code convention, retour vers la connexion.
-  const { status, profile } = useEspaceProfile("/badge");
-
-  // Pré-remplit depuis le profil connecté (dont la photo de l'espace).
-  useEffect(() => {
-    if (status !== "ready" || !profile || prefilledRef.current) return;
-    prefilledRef.current = true;
-    setName(profile.name);
-    if (profile.role && ROLES.includes(profile.role)) setRole(profile.role);
-    setOrganization(profile.organization ?? "");
-    setCity(profile.city ?? "");
-    setParticipantId(profile.id);
-    if (profile.photo_url) {
-      loadImageFromUrl(profile.photo_url)
-        .then((img) => setPhotoImg(img))
-        .catch(() => {});
-    }
-  }, [status, profile]);
 
   function validate() {
     const next: Record<string, string> = {};
@@ -78,8 +55,6 @@ export default function BadgePage() {
         role,
         organization: organization.trim(),
         city: city.trim(),
-        photoUrl: profile?.photo_url ?? undefined,
-        participantId: participantId ?? undefined,
       });
 
       const photo = photoImg;
@@ -143,17 +118,6 @@ export default function BadgePage() {
       }
     }
     handleDownload();
-  }
-
-  if (status !== "ready") {
-    return (
-      <main className="bg-canvas min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center px-6">
-          <div className="h-12 w-12 rounded-full border-2 border-blue border-t-transparent animate-spin" />
-          <p className="font-serif text-xl">Vérification de votre accès…</p>
-        </div>
-      </main>
-    );
   }
 
   return (
@@ -244,11 +208,6 @@ export default function BadgePage() {
                       .catch(() => setPhotoImg(null));
                   }}
                 />
-                {profile?.photo_url && (
-                  <p className="mt-1.5 text-xs text-ink/45">
-                    Pré-remplie depuis votre espace — vous pouvez la changer.
-                  </p>
-                )}
               </Field>
 
               <button

@@ -6,7 +6,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import ImageUpload from "@/components/form/ImageUpload";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import { Badge, Participant } from "@/lib/types";
-import { generateMemberCode, normalizePhone } from "@/lib/espace";
+import { generateMemberCode, normalizePhone } from "@/lib/participants";
 
 const ROLES = [
   "Participant",
