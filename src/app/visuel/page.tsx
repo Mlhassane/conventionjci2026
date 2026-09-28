@@ -326,78 +326,9 @@ export default function VisuelPage() {
                     aria-label="Aperçu du visuel J'y serai"
                   />
                   <p className="mt-3 text-center text-xs text-ink/45">
-                    L’aperçu se met à jour dès que vous changez la photo ou les
-                    réglages.
+                    L’aperçu se met à jour dès que vous changez la photo ou vos
+                    informations.
                   </p>
-                </div>
-              )}
-
-              {isJyserai && (
-                <div className="space-y-4 rounded-xl2 border border-line/10 bg-white p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide2 text-ink/50">
-                      Ajuster la photo
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPhotoScale(1);
-                        setPhotoOffsetX(0);
-                        setPhotoOffsetY(0);
-                      }}
-                      className="text-xs font-medium text-blue-dark hover:underline"
-                    >
-                      Réinitialiser
-                    </button>
-                  </div>
-                  <label className="block text-xs text-ink/60">
-                    <span className="mb-1.5 flex justify-between">
-                      <span>Taille</span>
-                      <span>{Math.round(photoScale * 100)}%</span>
-                    </span>
-                    <input
-                      aria-label="Taille de la photo"
-                      type="range"
-                      min="0.5"
-                      max="1.4"
-                      step="0.05"
-                      value={photoScale}
-                      onChange={(e) => setPhotoScale(Number(e.target.value))}
-                      className="w-full accent-[#0097D7]"
-                    />
-                  </label>
-                  <label className="block text-xs text-ink/60">
-                    <span className="mb-1.5 flex justify-between">
-                      <span aria-hidden="true">↔</span>
-                      <span>{photoOffsetX > 0 ? `+${photoOffsetX}` : photoOffsetX} px</span>
-                    </span>
-                    <input
-                      aria-label="Déplacement horizontal de la photo"
-                      type="range"
-                      min="-120"
-                      max="120"
-                      step="5"
-                      value={photoOffsetX}
-                      onChange={(e) => setPhotoOffsetX(Number(e.target.value))}
-                      className="w-full accent-[#0097D7]"
-                    />
-                  </label>
-                  <label className="block text-xs text-ink/60">
-                    <span className="mb-1.5 flex justify-between">
-                      <span aria-hidden="true">↕</span>
-                      <span>{photoOffsetY > 0 ? `+${photoOffsetY}` : photoOffsetY} px</span>
-                    </span>
-                    <input
-                      aria-label="Déplacement vertical de la photo"
-                      type="range"
-                      min="-200"
-                      max="200"
-                      step="5"
-                      value={photoOffsetY}
-                      onChange={(e) => setPhotoOffsetY(Number(e.target.value))}
-                      className="w-full accent-[#0097D7]"
-                    />
-                  </label>
                 </div>
               )}
 
