@@ -264,26 +264,6 @@ export default function VisuelPage() {
               exit={{ opacity: 0 }}
               className="mt-8 card p-6 md:p-8 shadow-card space-y-6"
             >
-              {isJyserai && (
-                <div className="rounded-xl2 border border-blue/20 bg-blue/[0.03] p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold">Aperçu en direct</p>
-                    <span className="rounded-full bg-blue/10 px-2.5 py-1 text-[11px] font-medium text-blue-dark">
-                      Modification
-                    </span>
-                  </div>
-                  <canvas
-                    ref={previewCanvasRef}
-                    className="mx-auto block w-full max-w-sm rounded-xl2 border border-line/10 shadow-card"
-                    aria-label="Aperçu du visuel J'y serai"
-                  />
-                  <p className="mt-3 text-center text-xs text-ink/45">
-                    L’aperçu se met à jour dès que vous changez la photo ou les
-                    réglages.
-                  </p>
-                </div>
-              )}
-
               {errors.global && (
                 <div className="rounded-xl2 border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
                   {errors.global}
@@ -299,7 +279,7 @@ export default function VisuelPage() {
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Ville">
                   <input
                     value={city}
@@ -331,6 +311,26 @@ export default function VisuelPage() {
                   }}
                 />
               </Field>
+
+              {isJyserai && (
+                <div className="rounded-xl2 border border-blue/20 bg-blue/[0.03] p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold">Aperçu en direct</p>
+                    <span className="rounded-full bg-blue/10 px-2.5 py-1 text-[11px] font-medium text-blue-dark">
+                      Modification
+                    </span>
+                  </div>
+                  <canvas
+                    ref={previewCanvasRef}
+                    className="mx-auto block w-full max-w-sm rounded-xl2 border border-line/10 shadow-card"
+                    aria-label="Aperçu du visuel J'y serai"
+                  />
+                  <p className="mt-3 text-center text-xs text-ink/45">
+                    L’aperçu se met à jour dès que vous changez la photo ou les
+                    réglages.
+                  </p>
+                </div>
+              )}
 
               {isJyserai && (
                 <div className="space-y-4 rounded-xl2 border border-line/10 bg-white p-4">
