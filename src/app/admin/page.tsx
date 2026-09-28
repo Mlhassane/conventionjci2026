@@ -152,7 +152,7 @@ export default function AdminLoginPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex : Hassane"
+                placeholder="Ex : Nom Prénom"
                 autoComplete="name"
                 className="w-full rounded-xl2 bg-white/5 border border-white/10 p-3.5 text-sm outline-none focus:border-blue focus:ring-4 focus:ring-blue/20 transition-all placeholder:text-paper/30"
               />
@@ -165,7 +165,7 @@ export default function AdminLoginPage() {
                 required
                 value={adminCode}
                 onChange={(e) => setAdminCode(e.target.value.toUpperCase())}
-                placeholder="Ex : JCI-2026-ADMIN"
+                placeholder="Ex : JCI-2026-XXXX"
                 autoComplete="off"
                 className="w-full rounded-xl2 bg-white/5 border border-white/10 p-3.5 text-sm font-mono uppercase outline-none focus:border-blue focus:ring-4 focus:ring-blue/20 transition-all placeholder:text-paper/30"
               />
