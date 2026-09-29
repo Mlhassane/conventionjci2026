@@ -7,7 +7,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import ImageUpload from "@/components/form/ImageUpload";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import { EventSettings } from "@/lib/types";
-import { mockEventSettings } from "@/lib/mockData";
+import { defaultEventSettings } from "@/lib/defaultSettings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +23,7 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setSettings(mockEventSettings);
+      setSettings(defaultEventSettings);
       return;
     }
     supabase
@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
       .select("*")
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => setSettings((data as EventSettings) ?? mockEventSettings));
+      .then(({ data }) => setSettings((data as EventSettings) ?? defaultEventSettings));
   }, []);
 
   async function handleLogoFile(
@@ -135,6 +135,13 @@ export default function AdminSettingsPage() {
               value={settings.hero_text}
               onChange={(value) => setSettings({ ...settings, hero_text: value })}
             />
+            <TextAreaField
+              label="Description SEO"
+              rows={2}
+              hint="Titre et description utilisés par Google et lors des partages"
+              value={settings.seo_description ?? ""}
+              onChange={(value) => setSettings({ ...settings, seo_description: value })}
+            />
           </CardContent>
         </Card>
 
@@ -215,6 +222,21 @@ export default function AdminSettingsPage() {
               <CardDescription>Liens affichés dans le pied de page du site.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Email de contact"
+                type="email"
+                placeholder="contact@jci-niger.org"
+                hint="Affiché dans le pied de page du site"
+                value={settings.contact_email ?? ""}
+                onChange={(value) => setSettings({ ...settings, contact_email: value })}
+              />
+              <TextField
+                label="Téléphone de contact"
+                inputMode="tel"
+                hint="Affiché dans le pied de page du site"
+                value={settings.contact_phone ?? ""}
+                onChange={(value) => setSettings({ ...settings, contact_phone: value })}
+              />
               <TextField
                 label="Facebook"
                 placeholder="https://facebook.com/…"

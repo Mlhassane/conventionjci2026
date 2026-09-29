@@ -15,6 +15,11 @@ export type EventSettings = {
   social_instagram: string | null;
   social_linkedin: string | null;
   social_whatsapp: string | null;
+  /** Contact affiché dans le pied de page du site public. */
+  contact_email: string | null;
+  contact_phone: string | null;
+  /** Description utilisée pour le SEO (balise meta + Open Graph). */
+  seo_description: string | null;
   updated_at?: string;
 };
 

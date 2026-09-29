@@ -19,6 +19,11 @@ export function formatDateRange(startISO: string, endISO: string): string {
   return `${startDay} ${startMonth} — ${endDay} ${month} ${year}`;
 }
 
+/** Variante sans l'année, utilisée sur les visuels imprimés. */
+export function formatShortDateRange(startISO: string, endISO: string): string {
+  return formatDateRange(startISO, endISO).replace(/\s+\d{4}$/, "");
+}
+
 export function formatDayLabel(dateISO: string): string {
   const date = new Date(dateISO + "T00:00:00Z");
   const days = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];

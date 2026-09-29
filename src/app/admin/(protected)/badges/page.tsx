@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   BadgeCheckIcon,
   BanIcon,
+  DownloadIcon,
   EyeIcon,
   IdCardIcon,
   RotateCcwIcon,
@@ -17,9 +18,18 @@ import { useTable } from "@/lib/admin/useTable";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { Badge, Participant } from "@/lib/types";
 import { generateBadgeCode } from "@/lib/badgeCode";
+import { formatShortDateRange } from "@/lib/date";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -28,11 +38,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BadgePreview from "@/components/BadgePreview";
+import { BadgeThumbnail } from "@/components/admin/badge-thumbnail";
 import { EmptyState } from "@/components/admin/ui/empty-state";
 import { ListToolbar } from "@/components/admin/ui/list-toolbar";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { RowActions } from "@/components/admin/ui/row-actions";
 import { StatCard, TableSkeleton } from "@/components/admin/ui/stat-card";
+
+/** Nombre de miniatures affichées avant le bouton « Afficher plus ». */
+const GALLERY_STEP = 6;
 
 export default function AdminBadgesPage() {
   const badgesTable = useTable<Badge>("badges", "created_at");
@@ -40,6 +56,29 @@ export default function AdminBadgesPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [preview, setPreview] = useState<Badge | null>(null);
+  const [eventInfo, setEventInfo] = useState({ dateLabel: "", location: "" });
+  const [view, setView] = useState<"liste" | "galerie">("liste");
+  const [visible, setVisible] = useState(GALLERY_STEP);
+
+  // Informations imprimées sur le badge, pilotées par l'admin > Paramètres.
+  useEffect(() => {
+    getSupabaseClient()
+      ?.from("event_settings")
+      .select("start_date, end_date, location")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setEventInfo({
+          dateLabel:
+            data.start_date && data.end_date
+              ? formatShortDateRange(data.start_date, data.end_date)
+              : "",
+          location: data.location ?? "",
+        });
+      });
+  }, []);
 
   const badgeByParticipant = useMemo(() => {
     const map = new Map<string, Badge>();
@@ -195,8 +234,18 @@ export default function AdminBadgesPage() {
       )}
 
       <Card className="gap-0 overflow-hidden border-line/10 py-0 shadow-card">
-        <div className="border-b px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
           <h2 className="text-sm font-semibold text-foreground">Badges générés</h2>
+          <Tabs value={view} onValueChange={(value) => setView(value as "liste" | "galerie")}>
+            <TabsList className="h-8">
+              <TabsTrigger value="liste" className="h-7 px-3 text-xs">
+                Liste
+              </TabsTrigger>
+              <TabsTrigger value="galerie" className="h-7 px-3 text-xs">
+                Galerie
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         <ListToolbar
           search={search}
@@ -205,6 +254,63 @@ export default function AdminBadgesPage() {
           count={filteredBadges.length}
           total={badgesTable.rows.length}
         />
+        {view === "galerie" ? (
+          <div className="p-6">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredBadges.slice(0, visible).map((badge) => (
+                <div
+                  key={badge.id}
+                  className="group flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPreview(badge)}
+                    className="p-3"
+                    aria-label={`Voir le badge de ${badge.full_name}`}
+                  >
+                    <BadgeThumbnail
+                      badge={badge}
+                      event={eventInfo}
+                      className="w-full transition-transform duration-300 group-hover:scale-[1.01]"
+                    />
+                  </button>
+                  <div className="flex items-center justify-between gap-2 border-t px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {badge.full_name}
+                      </p>
+                      <code className="font-mono text-[11px] text-muted-foreground">
+                        {badge.unique_code}
+                      </code>
+                    </div>
+                    <UiBadge
+                      variant="outline"
+                      className={
+                        badge.status === "active"
+                          ? "border-success/40 text-success"
+                          : "border-destructive/40 text-destructive"
+                      }
+                    >
+                      {badge.status === "active" ? "Actif" : "Révoqué"}
+                    </UiBadge>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {filteredBadges.length > visible && (
+              <div className="mt-5 flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVisible((current) => current + GALLERY_STEP)}
+                >
+                  Afficher plus ({filteredBadges.length - visible} restant
+                  {filteredBadges.length - visible > 1 ? "s" : ""})
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
         <CardContent className="px-0">
           {loading ? (
             <TableSkeleton columns={4} rows={5} />
@@ -264,6 +370,11 @@ export default function AdminBadgesPage() {
                         <RowActions
                           items={[
                             {
+                              label: "Générer et télécharger",
+                              icon: DownloadIcon,
+                              onSelect: () => setPreview(badge),
+                            },
+                            {
                               label: "Vérifier le badge",
                               icon: EyeIcon,
                               href: `/badge/verify/${badge.unique_code}`,
@@ -310,7 +421,31 @@ export default function AdminBadgesPage() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
+
+      <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && setPreview(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Badge de {preview?.full_name}</DialogTitle>
+            <DialogDescription>
+              Le PNG reprend les informations de l&apos;événement définies dans l&apos;admin.
+            </DialogDescription>
+          </DialogHeader>
+          {preview && (
+            <BadgePreview
+              badge={preview}
+              eventDateLabel={eventInfo.dateLabel}
+              location={eventInfo.location}
+            />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreview(null)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

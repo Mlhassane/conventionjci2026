@@ -48,6 +48,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Accès suspendu depuis la console : la connexion par code est refusée.
+    if (profile.admin_active === false) {
+      return NextResponse.json(
+        { error: "Votre accès administrateur est suspendu." },
+        { status: 403 }
+      );
+    }
+
     const sb = createClient(url, anonKey);
     const { data: sessionData, error: signInError } =
       await sb.auth.signInWithPassword({
@@ -60,6 +68,13 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // Trace la dernière connexion de l'administrateur (affichée dans
+    // l'écran « Équipe admin »).
+    await admin
+      .from("participants")
+      .update({ last_login_at: new Date().toISOString() })
+      .eq("id", profile.id);
 
     return NextResponse.json({ session: sessionData.session });
   } catch {

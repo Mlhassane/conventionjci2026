@@ -109,7 +109,7 @@ The PNG generation itself is client-side. When a visitor generates a `/j-y-seri`
 
 ## 7. Deployment
 
-Any Next.js host works (Vercel is the simplest). Set the two `NEXT_PUBLIC_SUPABASE_*` environment variables (and optionally `NEXT_PUBLIC_SITE_URL`) in your host's dashboard, then deploy. No server runtime secrets are required — everything uses the public anon key, protected by the Row Level Security policies in `supabase/schema.sql`.
+Any Next.js host works (Vercel is the simplest). Set the two `NEXT_PUBLIC_SUPABASE_*` environment variables and `NEXT_PUBLIC_SITE_URL=https://conventionjci2026.vercel.app` in your host's dashboard, then deploy. No server runtime secrets are required — everything uses the public anon key, protected by the Row Level Security policies in `supabase/schema.sql`.
 
 ---
 

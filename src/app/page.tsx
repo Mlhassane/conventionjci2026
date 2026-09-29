@@ -165,7 +165,7 @@ export default async function HomePage() {
             ))}
             {partners.length === 0 && (
               <span className="font-sans text-[11px] tracking-wide2 uppercase text-ink/50">
-                Partenaires officiels · JCI Niger
+                {`Partenaires officiels · ${settings.event_name}`}
               </span>
             )}
           </div>
@@ -180,12 +180,12 @@ export default async function HomePage() {
             <h2 className="mt-5 font-serif text-3xl md:text-[2.75rem] leading-[1.12] text-balance">
               La Convention qui connecte{" "}
               <span className="text-blue-dark">leadership</span>, culture et{" "}
-              <span className="italic text-blue-dark">opportunités</span> à
-              Maradi.
+              <span className="italic text-blue-dark">opportunités</span>
+              {settings.location ? ` à ${settings.location.split(",")[0]}.` : "."}
             </h2>
             <p className="mt-5 text-sm md:text-base text-ink/60 leading-relaxed">
-              Deux jours pour apprendre, célébrer et faire grandir votre réseau
-              JCI — avec une expérience digitale pensée pour vous.
+              {settings.hero_text ||
+                "Une expérience digitale pensée pour apprendre, célébrer et faire grandir votre réseau JCI."}
             </p>
           </div>
 
@@ -218,16 +218,21 @@ export default async function HomePage() {
                   <span className="text-blue">+</span>
                 </p>
                 <p className="mt-4 text-sm md:text-base text-paper/75 max-w-md leading-relaxed">
-                  Membres et invités réunis pour l&apos;édition 2026 de la
-                  Convention JCI Niger — le réseau qui fait vivre Maradi.
+                  Membres et invités réunis pour l&apos;édition{" "}
+                  {settings.start_date.slice(0, 4) || "à venir"} — le réseau
+                  qui fait vivre {settings.location || "la Convention"}.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-white/10 px-3.5 py-1.5 text-xs text-paper/85">
-                    9 — 10 octobre 2026
-                  </span>
-                  <span className="rounded-full bg-blue/20 px-3.5 py-1.5 text-xs text-blue">
-                    Maradi, Niger
-                  </span>
+                  {dateLabel && (
+                    <span className="rounded-full bg-white/10 px-3.5 py-1.5 text-xs text-paper/85">
+                      {dateLabel}
+                    </span>
+                  )}
+                  {settings.location && (
+                    <span className="rounded-full bg-blue/20 px-3.5 py-1.5 text-xs text-blue">
+                      {settings.location}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -343,7 +348,7 @@ export default async function HomePage() {
               href="/partenaires"
               icon={<HandGlyph />}
               title="Partenaires"
-              text={`${partners.length} partenaires officiels aux côtés de JCI Niger.`}
+              text={`${partners.length} partenaires officiels aux côtés de ${settings.event_name}.`}
             />
             <ServiceCard
               href="/participants"
@@ -361,7 +366,7 @@ export default async function HomePage() {
           <Reveal className="mx-auto max-w-xl text-center">
             <p className="eyebrow eyebrow-center">Au programme</p>
             <h2 className="mt-5 font-serif text-3xl md:text-[2.5rem] leading-[1.15] text-balance">
-              Deux jours pour apprendre, connecter et célébrer.
+              {dateLabel ? `${dateLabel} pour apprendre, connecter et célébrer.` : "Apprendre, connecter et célébrer."}
             </h2>
             <p className="mt-4 text-sm text-ink/60 leading-relaxed">
               Un aperçu des premières sessions de l&apos;édition 2026.

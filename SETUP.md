@@ -68,14 +68,14 @@ Fichier **local uniquement** (ignoré par Git). Template : `.env.local.example`.
 
 | Variable | Défaut | À quoi ça sert |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | `window.location` dans le navigateur | Base URL des liens QR badge (`/badge/verify/...`) — mettre l’URL publique en prod, `http://localhost:3000` en dev |
+| `NEXT_PUBLIC_SITE_URL` | `window.location` dans le navigateur | Base URL des liens QR badge (`/badge/verify/...`) — en prod : `https://conventionjci2026.vercel.app`, en dev : `http://localhost:3000` |
 
 ### Exemple de `.env.local` (structure — remplace les valeurs)
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://VOTRE-PROJET.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=VOTRE-ANON-KEY
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=https://conventionjci2026.vercel.app
 
 SUPABASE_SERVICE_ROLE_KEY=VOTRE-SERVICE-ROLE-KEY
 ADMIN_HASSANE_PASSWORD=VOTRE-MOT-DE-PASSE-ADMIN-AUTH

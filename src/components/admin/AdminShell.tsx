@@ -16,6 +16,7 @@ import {
   MicIcon,
   SettingsIcon,
   ShieldCheckIcon,
+  UserCogIcon,
   SparklesIcon,
   UsersIcon,
   type LucideIcon,
@@ -72,6 +73,7 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
     label: "Suivi",
     links: [
       { href: "/admin/analytics", label: "Statistiques", icon: BarChart3Icon },
+      { href: "/admin/admins", label: "Équipe admin", icon: UserCogIcon },
       { href: "/admin/settings", label: "Paramètres", icon: SettingsIcon },
     ],
   },

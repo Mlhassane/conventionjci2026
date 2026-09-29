@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { drawBadge } from "@/lib/canvas/badge";
+import { ensureCanvasFonts } from "@/lib/canvas/fonts";
 import { canvasToBlob } from "@/lib/canvas/loadImage";
 import { track } from "@/lib/analytics";
 
@@ -25,10 +26,19 @@ function loadImageFromUrl(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Renders an official badge PNG from a badge record (admin-generated) and
- * offers download. Used in the admin badge tools and the badge lookup page.
+ * Rend le PNG officiel d'un badge et propose le téléchargement.
+ * Les informations imprimées (date, lieu) proviennent des paramètres de
+ * l'événement, modifiables depuis l'admin > Paramètres.
  */
-export default function BadgePreview({ badge }: { badge: BadgePreviewData }) {
+export default function BadgePreview({
+  badge,
+  eventDateLabel,
+  location,
+}: {
+  badge: BadgePreviewData;
+  eventDateLabel?: string;
+  location?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pngUrl, setPngUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -40,7 +50,7 @@ export default function BadgePreview({ badge }: { badge: BadgePreviewData }) {
         const photo = badge.photo_url
           ? await loadImageFromUrl(badge.photo_url).catch(() => null)
           : null;
-        if (document.fonts?.ready) await document.fonts.ready;
+        await ensureCanvasFonts();
         const canvas = canvasRef.current;
         if (!canvas || cancelled) return;
         const origin =
@@ -54,8 +64,8 @@ export default function BadgePreview({ badge }: { badge: BadgePreviewData }) {
           photo,
           uniqueCode: badge.unique_code,
           verifyUrl: `${origin}/badge/verify/${badge.unique_code}`,
-          eventDateLabel: "9 — 10 OCTOBRE",
-          location: "MARADI",
+          eventDateLabel: (eventDateLabel ?? "").toUpperCase(),
+          location: (location ?? "").toUpperCase(),
         });
         if (!cancelled) setPngUrl(canvas.toDataURL("image/png"));
       } catch {
@@ -65,7 +75,7 @@ export default function BadgePreview({ badge }: { badge: BadgePreviewData }) {
     return () => {
       cancelled = true;
     };
-  }, [badge]);
+  }, [badge, eventDateLabel, location]);
 
   async function handleDownload() {
     if (!canvasRef.current) return;
@@ -74,7 +84,7 @@ export default function BadgePreview({ badge }: { badge: BadgePreviewData }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `badge-jci-convention-2026-${badge.unique_code}.png`;
+    a.download = `badge-${badge.unique_code}.png`;
     a.click();
     URL.revokeObjectURL(url);
     track("badge_downloaded");

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Arvo } from "next/font/google";
 import "./globals.css";
+import { getEventSettings } from "@/lib/data";
 import Nav from "@/components/Nav";
 import BottomNav from "@/components/BottomNav";
 
@@ -22,22 +23,37 @@ const arvo = Arvo({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-  ),
-  title: "Convention JCI Niger 2026 — JCI Experience",
-  description:
-    "Découvrez la Convention JCI Niger 2026 : programme, participants, intervenants, partenaires, badges et expérience digitale.",
-  openGraph: {
-    title: "Convention JCI Niger 2026 — JCI Experience",
-    description:
-      "Découvrez la Convention JCI Niger 2026 : programme, participants, intervenants, partenaires, badges et expérience digitale.",
-    images: [{ url: "/hero_image.png", width: 1200, height: 630, alt: "Convention JCI Niger 2026" }],
-    locale: "fr_FR",
-    type: "website",
-  },
-};
+export const dynamic = "force-dynamic";
+
+/** Titre et description de la page : pilotés depuis l'admin > Paramètres. */
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getEventSettings();
+  const title = settings.event_name;
+  const description =
+    settings.seo_description || settings.hero_text || settings.tagline;
+
+  return {
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+    ),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [
+        {
+          url: "/hero_image.png",
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: "fr_FR",
+      type: "website",
+    },
+  };
+}
 
 export default function RootLayout({
   children,

@@ -1,7 +1,7 @@
 import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
-import { getOfficials, getPracticalInfo } from "@/lib/data";
+import { getEventSettings, getOfficials, getPracticalInfo } from "@/lib/data";
 import { PracticalInfoSection } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -17,15 +17,16 @@ const SECTION_ICON: Record<PracticalInfoSection, string> = {
 };
 
 export default async function InfosPage() {
-  const [infos, officials] = await Promise.all([
+  const [infos, officials, settings] = await Promise.all([
     getPracticalInfo(),
     getOfficials(),
+    getEventSettings(),
   ]);
 
   return (
     <main>
       <PageHeader
-        eyebrow="Convention JCI Niger 2026"
+        eyebrow={settings.event_name}
         title="Infos pratiques"
         description="Lieu, hébergement, transport, officiels et contacts — tout ce qu'il faut savoir avant de venir."
       />
