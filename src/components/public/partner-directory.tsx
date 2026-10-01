@@ -133,7 +133,7 @@ export function PartnerDirectory({ partners }: { partners: Partner[] }) {
                   {partner.offer ? (
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
                       <TagIcon className="h-3.5 w-3.5" />
-                      Offre Convention
+                      Prestation
                     </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">En savoir plus</span>

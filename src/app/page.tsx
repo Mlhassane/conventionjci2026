@@ -11,6 +11,7 @@ import {
 import { formatDateRange, formatDayLabel } from "@/lib/date";
 import { SessionCategory } from "@/lib/types";
 import Reveal from "@/components/Reveal";
+import { PartnerLogoSlider } from "@/components/public/partner-logo-slider";
 
 export const dynamic = "force-dynamic";
 
@@ -150,25 +151,16 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ======================= LOGO STRIP ======================= */}
-      <section className="border-b border-line/8">
-        <div className="px-5 lg:px-[20%] py-7 md:py-9 overflow-hidden">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 md:gap-x-12 opacity-45">
-            {partners.slice(0, 8).map((partner) => (
-              <Link
-                key={partner.id}
-                href={`/partenaires/${partner.id}`}
-                className="font-sans text-[11px] md:text-xs tracking-wide2 uppercase text-ink/70 hover:text-blue-dark transition-colors"
-              >
-                {partner.name}
-              </Link>
-            ))}
-            {partners.length === 0 && (
-              <span className="font-sans text-[11px] tracking-wide2 uppercase text-ink/50">
-                {`Partenaires officiels · ${settings.event_name}`}
-              </span>
-            )}
-          </div>
+      {/* ======================= BANDEAU LOGOS ======================= */}
+      <section className="border-b border-line/8 bg-paper">
+        <div className="container-edge py-7 md:py-9">
+          {partners.length === 0 ? (
+            <p className="text-center font-sans text-[11px] tracking-wide2 uppercase text-ink/40">
+              {`Partenaires officiels · ${settings.event_name}`}
+            </p>
+          ) : (
+            <PartnerLogoSlider partners={partners} />
+          )}
         </div>
       </section>
 

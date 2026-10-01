@@ -2,6 +2,7 @@ import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import { getEventSettings, getPartners } from "@/lib/data";
 import { PartnerDirectory } from "@/components/public/partner-directory";
+import { PartnerLogoSlider } from "@/components/public/partner-logo-slider";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,15 @@ export default async function PartenairesPage() {
         )}
       </PageHeader>
 
-      <div className="container-edge pb-24">
+      {partners.length > 0 && (
+        <section className="border-b border-line/8 bg-paper">
+          <div className="container-edge py-7 md:py-9">
+            <PartnerLogoSlider partners={partners} />
+          </div>
+        </section>
+      )}
+
+      <div className="container-edge py-10 md:py-14">
         <PartnerDirectory partners={partners} />
       </div>
       <Footer />

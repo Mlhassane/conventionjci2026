@@ -72,6 +72,9 @@ export default function AdminLoginPage() {
         setLoading(false);
         return;
       }
+
+      // Le serveur a déjà échangé son jeton contre une session standard :
+      // le navigateur ne fait que l'ouvrir (aucun mot de passe involved).
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: payload.session.access_token,
         refresh_token: payload.session.refresh_token,

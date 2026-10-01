@@ -51,6 +51,7 @@ export function TextField({
   required,
   type = "text",
   inputMode,
+  autoComplete,
   disabled,
   className,
 }: {
@@ -62,6 +63,7 @@ export function TextField({
   required?: boolean;
   type?: string;
   inputMode?: "text" | "tel" | "email" | "url" | "numeric";
+  autoComplete?: string;
   disabled?: boolean;
   className?: string;
 }) {
@@ -71,6 +73,7 @@ export function TextField({
         type={type}
         value={value}
         inputMode={inputMode}
+        autoComplete={autoComplete}
         placeholder={placeholder}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
@@ -87,6 +90,7 @@ export function TextAreaField({
   placeholder,
   required,
   rows = 4,
+  autoComplete,
   className,
 }: {
   label: string;
@@ -96,6 +100,7 @@ export function TextAreaField({
   placeholder?: string;
   required?: boolean;
   rows?: number;
+  autoComplete?: string;
   className?: string;
 }) {
   return (
@@ -103,6 +108,7 @@ export function TextAreaField({
       <Textarea
         rows={rows}
         value={value}
+        autoComplete={autoComplete}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
       />

@@ -14,6 +14,7 @@ import {
   LayoutDashboardIcon,
   LogOutIcon,
   MicIcon,
+  KeyRoundIcon,
   SettingsIcon,
   ShieldCheckIcon,
   UserCogIcon,
@@ -74,6 +75,7 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
     links: [
       { href: "/admin/analytics", label: "Statistiques", icon: BarChart3Icon },
       { href: "/admin/admins", label: "Équipe admin", icon: UserCogIcon },
+      { href: "/admin/mon-compte", label: "Mon compte", icon: KeyRoundIcon },
       { href: "/admin/settings", label: "Paramètres", icon: SettingsIcon },
     ],
   },

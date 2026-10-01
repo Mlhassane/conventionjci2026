@@ -92,9 +92,11 @@ export default async function PartnerDetailPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base text-primary">
                 <TagIcon className="h-4 w-4" />
-                Offre spéciale Convention
+                Ce que le partenaire apporte
               </CardTitle>
-              <CardDescription>Profitez de l&apos;offre réservée aux participants.</CardDescription>
+              <CardDescription>
+                Prestation proposée aux participants de la Convention.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="leading-relaxed text-foreground">{partner.offer}</p>

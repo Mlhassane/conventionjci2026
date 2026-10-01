@@ -199,7 +199,7 @@ export default function AdminPartnersPage() {
                   <TableRow>
                     <TableHead className="pl-6">Partenaire</TableHead>
                     <TableHead>Catégorie</TableHead>
-                    <TableHead>Offre</TableHead>
+                    <TableHead>Prestation</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead className="pr-6 text-right">Actions</TableHead>
                   </TableRow>
@@ -357,7 +357,7 @@ export default function AdminPartnersPage() {
               onChange={(value) => setForm({ ...form, whatsapp: value })}
             />
             <TextField
-              label="Offre Convention"
+              label="Prestation / contribution"
               value={form?.offer ?? ""}
               onChange={(value) => setForm({ ...form, offer: value })}
             />
