@@ -67,13 +67,21 @@ export type Badge = {
   created_at: string;
 };
 
-export type PartnerCategory =
-  | "Partenaire officiel"
-  | "Partenaire principal"
-  | "Sponsor"
-  | "Partenaire média"
-  | "Partenaire institutionnel"
-  | "Partenaire technique";
+/**
+ * Types de partenariat proposés en suggestion dans l'admin.
+ * Le champ reste libre : n'importe quelle autre formulation est acceptée.
+ */
+export const PARTNER_CATEGORIES = [
+  "Partenaire officiel",
+  "Partenaire principal",
+  "Sponsor",
+  "Partenaire média",
+  "Partenaire institutionnel",
+  "Partenaire technique",
+] as const;
+
+/** Type de partenariat saisi : une valeur libre. */
+export type PartnerCategory = string;
 
 export type Partner = {
   id: string;

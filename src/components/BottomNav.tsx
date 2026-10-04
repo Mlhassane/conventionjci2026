@@ -2,79 +2,66 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CalendarDaysIcon, HomeIcon, SparklesIcon } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { Dock, DockIcon } from "@/registry/magicui/dock";
 
 const ITEMS = [
   { href: "/", label: "Accueil", icon: HomeIcon },
-  { href: "/visuel", label: "Visuel", icon: ImageIcon },
-  { href: "/programme", label: "Programme", icon: CalendarIcon },
+  { href: "/j-y-seri", label: "J’y serai", icon: SparklesIcon },
+  { href: "/programme", label: "Programme", icon: CalendarDaysIcon },
 ];
+
+/** Icônes supplementary pour /visuel (alias de /j-y-seri). */
+function isActive(pathname: string | null, href: string) {
+  if (!pathname) return false;
+  if (href === "/") return pathname === "/";
+  if (href === "/j-y-seri") return pathname === "/j-y-seri" || pathname === "/visuel";
+  return pathname.startsWith(href);
+}
 
 export default function BottomNav() {
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) return null;
 
   return (
-    <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-ink/95 backdrop-blur-md text-paper border-t border-white/10"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-    >
-      <div className="grid grid-cols-3">
+    <TooltipProvider delayDuration={0}>
+      <Dock>
         {ITEMS.map((item) => {
-          const active =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname?.startsWith(item.href);
+          const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`relative flex flex-col items-center justify-center gap-1 py-2.5 transition-colors ${
-                active ? "text-blue" : "text-paper/55 hover:text-paper"
-              }`}
-            >
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute top-0 h-0.5 w-8 rounded-full bg-blue"
-                />
-              )}
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-sans">{item.label}</span>
-            </Link>
+            <DockIcon key={item.href}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={item.href}
+                    aria-label={item.label}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      buttonVariants({ variant: "ghost", size: "icon" }),
+                      "size-12 rounded-full text-paper/70 transition-colors hover:bg-white/10 hover:text-paper",
+                      active && "bg-blue text-ink hover:bg-blue hover:text-ink"
+                    )}
+                  >
+                    <Icon className="size-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{item.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            </DockIcon>
           );
         })}
-      </div>
-    </nav>
-  );
-}
-
-function HomeIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M4 11.5 12 4l8 7.5M6 10v9h5v-5h2v5h5v-9"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-function ImageIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="9" cy="10" r="1.4" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M5 16.5 9.5 12l3 3 2.5-2.5L19 16.5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function CalendarIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="4" y="5.5" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M4 9.5h16M8 3.5v3M16 3.5v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
+      </Dock>
+    </TooltipProvider>
   );
 }

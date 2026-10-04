@@ -116,6 +116,52 @@ export function TextAreaField({
   );
 }
 
+/**
+ * Champ libre avec suggestions : on peut choisir une valeur proposée
+ * ou écrire freely ce que l'on veut.
+ */
+export function ComboField({
+  label,
+  value,
+  onChange,
+  suggestions,
+  hint,
+  placeholder,
+  required,
+  id,
+  className,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  suggestions: string[];
+  hint?: string;
+  placeholder?: string;
+  required?: boolean;
+  id?: string;
+  className?: string;
+}) {
+  // Un id stable est nécessaire pour relier l'input à sa liste de suggestions.
+  const listId = `${id ?? label.replace(/\s+/g, "-").toLowerCase()}-suggestions`;
+
+  return (
+    <Field label={label} htmlFor={listId} hint={hint} required={required} className={className}>
+      <Input
+        id={listId}
+        list={listId}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <datalist id={listId}>
+        {suggestions.map((suggestion) => (
+          <option key={suggestion} value={suggestion} />
+        ))}
+      </datalist>
+    </Field>
+  );
+}
+
 export function SelectField({
   label,
   value,

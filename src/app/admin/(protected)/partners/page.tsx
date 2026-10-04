@@ -7,6 +7,7 @@ import {
   EyeIcon,
   EyeOffIcon,
   HandshakeIcon,
+  ImageIcon,
   PencilIcon,
   PlusIcon,
   Trash2Icon,
@@ -14,7 +15,7 @@ import {
 import { useTable } from "@/lib/admin/useTable";
 import ImageUpload from "@/components/form/ImageUpload";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
-import { Partner, PartnerCategory } from "@/lib/types";
+import { PARTNER_CATEGORIES, type Partner } from "@/lib/types";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,21 +35,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { LogoBackgroundEditor } from "@/components/admin/logo-background-editor";
+import { PartnerPosterPreview } from "@/components/admin/partner-poster-preview";
 import { EmptyState } from "@/components/admin/ui/empty-state";
-import { SelectField, TextAreaField, TextField } from "@/components/admin/ui/form-fields";
+import { ComboField, TextAreaField, TextField } from "@/components/admin/ui/form-fields";
 import { ListToolbar } from "@/components/admin/ui/list-toolbar";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { RowActions } from "@/components/admin/ui/row-actions";
 import { StatCard, TableSkeleton } from "@/components/admin/ui/stat-card";
 
-const CATEGORIES: PartnerCategory[] = [
-  "Partenaire officiel",
-  "Partenaire principal",
-  "Sponsor",
-  "Partenaire média",
-  "Partenaire institutionnel",
-  "Partenaire technique",
-];
+/** Valeurs proposées : on peut aussi saisir un type libre. */
+const CATEGORIES = [...PARTNER_CATEGORIES];
 
 const EMPTY: Partial<Partner> = {
   name: "",
@@ -72,6 +69,7 @@ export default function AdminPartnersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const [poster, setPoster] = useState<Partner | null>(null);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -253,6 +251,11 @@ export default function AdminPartnersPage() {
                         <RowActions
                           items={[
                             {
+                              label: "Générer l’affiche",
+                              icon: ImageIcon,
+                              onSelect: () => setPoster(partner),
+                            },
+                            {
                               label: "Modifier",
                               icon: PencilIcon,
                               onSelect: () => openEdit(partner),
@@ -298,6 +301,19 @@ export default function AdminPartnersPage() {
         </CardContent>
       </Card>
 
+      <Dialog open={Boolean(poster)} onOpenChange={(open) => !open && setPoster(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Affiche — {poster?.name}</DialogTitle>
+            <DialogDescription>
+              Logo, type de partnership et le texte de la « Description »
+              (à défaut, la prestation/contribution).
+            </DialogDescription>
+          </DialogHeader>
+          {poster && <PartnerPosterPreview partner={poster} />}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={Boolean(form)} onOpenChange={(open) => !open && setForm(null)}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
@@ -314,11 +330,15 @@ export default function AdminPartnersPage() {
               value={form?.name ?? ""}
               onChange={(value) => setForm({ ...form, name: value })}
             />
-            <SelectField
-              label="Catégorie"
-              value={(form?.category as string) ?? "Sponsor"}
-              onChange={(value) => setForm({ ...form, category: value as PartnerCategory })}
-              options={CATEGORIES.map((category) => ({ value: category, label: category }))}
+            <ComboField
+              label="Type de partenariat"
+              id="partner-category"
+              value={form?.category ?? ""}
+              onChange={(value) => setForm({ ...form, category: value })}
+              suggestions={CATEGORIES}
+              placeholder="Choisir ou écrire un type"
+              hint="Choisis un type proposé ou écris le tien."
+              required
             />
           </div>
 
@@ -340,6 +360,29 @@ export default function AdminPartnersPage() {
                 label="Téléverser le logo"
                 hint="PNG transparent recommandé, 8 Mo max"
               />
+              {form?.logo_url && (
+                <div className="mt-3 border-t pt-3">
+                  <LogoBackgroundEditor
+                    logoUrl={form.logo_url}
+                    busy={uploading}
+                    onApply={async (file) => {
+                      setFormError(null);
+                      setUploading(true);
+                      const url = await uploadAdminImage("partners", "logos", file);
+                      setUploading(false);
+                      if (!url) {
+                        setFormError("Envoi du logo impossible. Réessayez.");
+                        return;
+                      }
+                      setForm((current) => (current ? { ...current, logo_url: url } : current));
+                    }}
+                  />
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Le logo est affiché sur fond blanc : supprime le fond pour
+                    qu’il s’accorde aux deux bandeaux.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

@@ -3,9 +3,20 @@ const MONTHS_FR = [
   "juillet", "août", "septembre", "octobre", "novembre", "décembre",
 ];
 
-export function formatDateRange(startISO: string, endISO: string): string {
-  const start = new Date(startISO);
-  const end = new Date(endISO);
+function parseDate(dateISO: string | null | undefined): Date | null {
+  if (!dateISO) return null;
+  const date = new Date(dateISO);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatDateRange(
+  startISO: string | null | undefined,
+  endISO: string | null | undefined
+): string {
+  const start = parseDate(startISO);
+  const end = parseDate(endISO);
+  // Une date manquante ou invalide ne doit pas casser la page.
+  if (!start || !end) return "";
   const startDay = start.getUTCDate();
   const endDay = end.getUTCDate();
   const sameMonth = start.getUTCMonth() === end.getUTCMonth();
@@ -20,12 +31,16 @@ export function formatDateRange(startISO: string, endISO: string): string {
 }
 
 /** Variante sans l'année, utilisée sur les visuels imprimés. */
-export function formatShortDateRange(startISO: string, endISO: string): string {
+export function formatShortDateRange(
+  startISO: string | null | undefined,
+  endISO: string | null | undefined
+): string {
   return formatDateRange(startISO, endISO).replace(/\s+\d{4}$/, "");
 }
 
-export function formatDayLabel(dateISO: string): string {
-  const date = new Date(dateISO + "T00:00:00Z");
+export function formatDayLabel(dateISO: string | null | undefined): string {
+  const date = parseDate(dateISO);
+  if (!date) return "";
   const days = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
   const day = days[date.getUTCDay()];
   const dayNum = date.getUTCDate();
