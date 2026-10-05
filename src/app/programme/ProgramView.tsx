@@ -65,7 +65,10 @@ export default function ProgramView({
     if (selectedDay) list = list.filter((s) => s.date === selectedDay);
     if (activeCategory !== "Tout")
       list = list.filter((s) => s.category === activeCategory);
-    return [...list].sort((a, b) => a.start_time.localeCompare(b.start_time));
+    // Les activités sans horaire passent en fin de journée.
+    return [...list].sort((a, b) =>
+      (a.start_time ?? "99:99").localeCompare(b.start_time ?? "99:99")
+    );
   }, [sessions, selectedDay, activeCategory]);
 
   if (sessions.length === 0) {
@@ -146,11 +149,16 @@ export default function ProgramView({
               >
                 <div className="flex w-20 md:w-28 shrink-0 flex-col items-center justify-center border-r border-line/8 bg-canvas px-2 py-5">
                   <span className="font-sans text-base md:text-lg font-bold tracking-tight text-ink">
-                    {session.start_time}
+                    {session.start_time ?? "—"}
                   </span>
                   {session.end_time && (
                     <span className="mt-0.5 text-[11px] text-ink/40">
                       → {session.end_time}
+                    </span>
+                  )}
+                  {!session.start_time && (
+                    <span className="mt-0.5 text-[11px] text-ink/40">
+                      à confirmer
                     </span>
                   )}
                 </div>
@@ -179,7 +187,7 @@ export default function ProgramView({
                     </span>
                   </div>
 
-                  {(session.location || speaker) && (
+                  {(session.location || session.responsibility || speaker) && (
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink/45">
                       {session.location && (
                         <span className="inline-flex items-center gap-1.5">
@@ -203,6 +211,31 @@ export default function ProgramView({
                             />
                           </svg>
                           {session.location}
+                        </span>
+                      )}
+                      {session.responsibility && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            className="h-3.5 w-3.5"
+                            aria-hidden
+                          >
+                            <circle
+                              cx="12"
+                              cy="8"
+                              r="3.2"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                            />
+                            <path
+                              d="M5.5 19.5c1.3-3.2 3.7-4.8 6.5-4.8s5.2 1.6 6.5 4.8"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          {session.responsibility}
                         </span>
                       )}
                       {speaker && (

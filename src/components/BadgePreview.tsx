@@ -15,15 +15,6 @@ export type BadgePreviewData = {
   unique_code: string;
 };
 
-function loadImageFromUrl(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
 
 /**
  * Rend le PNG officiel d'un badge et propose le téléchargement.
@@ -47,9 +38,6 @@ export default function BadgePreview({
     let cancelled = false;
     (async () => {
       try {
-        const photo = badge.photo_url
-          ? await loadImageFromUrl(badge.photo_url).catch(() => null)
-          : null;
         await ensureCanvasFonts();
         const canvas = canvasRef.current;
         if (!canvas || cancelled) return;
@@ -61,9 +49,9 @@ export default function BadgePreview({
           role: badge.role,
           organization: badge.organization ?? "",
           city: badge.city ?? "",
-          photo,
           uniqueCode: badge.unique_code,
           verifyUrl: `${origin}/badge/verify/${badge.unique_code}`,
+          siteLabel: origin.replace(/^https?:\/\//, "").replace(/\/$/, ""),
           eventDateLabel: (eventDateLabel ?? "").toUpperCase(),
           location: (location ?? "").toUpperCase(),
         });

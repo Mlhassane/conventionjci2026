@@ -1,1697 +1,564 @@
-
 import { sansFont } from "./fonts";
+import { loadImageFromUrl } from "./loadImage";
+import { trimLogoEdges } from "./trimLogo";
 
 export type PartnerPosterData = {
-  /** Nom de l'entreprise / du partenaire. */
+  /** Nom de l'entreprise / du partenaire : titre du cadre de description. */
   name: string;
-
-  /** Type de partenariat : Partenaire officiel, Partenaire média, etc. */
+  /** Type de partnership : pastille rouge sous le logo. */
   category: string;
-
-  /** Description courte du partenaire. */
+  /** Description saisie dans l'admin (à défaut, la prestation/contribution). */
   message: string;
-
-  /** Logo du partenaire. */
+  /** Logo placé dans le cercle rouge. */
   logo: HTMLImageElement | null;
-
-  /**
-   * Affiche officielle de l'événement utilisée comme arrière-plan.
-   *
-   * IMPORTANT :
-   * Cette image est considérée comme une affiche finale.
-   *
-   * Elle contient notamment :
-   * - logo JCI Niger à gauche
-   * - logo Convention au centre
-   * - logo JCI Maradi à droite
-   *
-   * Elle doit rester parfaitement nette et intacte.
-   */
+  /** Affiche officielle de la Convention, reprise en arrière-plan. */
   artwork?: HTMLImageElement | null;
+  /** Dates de la Convention (paramètres de l'événement). */
+  eventDateLabel?: string;
+  /** Ville de la Convention (paramètres de l'événement). */
+  location?: string;
+  /** Lien public du partenaire, utilisé pour le QR discret du pied. */
+  partnerUrl?: string;
 };
 
 const WIDTH = 1080;
 const HEIGHT = 1350;
 
 const COLORS = {
-  night: "#1B0605",
-  deep: "#2E0A06",
-  gold: "#DFAE4E",
-  goldLight: "#F3D08A",
-  goldDark: "#A97A22",
-  maroon: "#4A0E12",
   paper: "#FFFFFF",
-  panel: "#140303",
+  cream: "#F7F2EA",
+  red: "#C8102E",
+  redDark: "#9B0C23",
+  redSoft: "rgba(200,16,46,0.10)",
+  gold: "#D9A62E",
+  goldSoft: "rgba(217,166,46,0.28)",
+  ink: "#2B2B2B",
+  grey: "#6E6A66",
+  stone: "rgba(120,118,124,0.10)",
 };
 
 /* ------------------------------------------------------------------ */
-/* Utilitaires                                                        */
+/* Outils                                                              */
 /* ------------------------------------------------------------------ */
 
-/**
- * Limite une valeur entre deux bornes.
- */
-function clamp(
-  value: number,
-  min: number,
-  max: number
-) {
-  return Math.min(
-    Math.max(value, min),
-    max
-  );
-}
-
-/**
- * Dessine une forme de ruban avec encoches latérales.
- */
-function ribbonPath(
+function roundedRectPath(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
   h: number,
-  notch: number
+  r: number
 ) {
   ctx.beginPath();
-
-  ctx.moveTo(
-    x + notch,
-    y
-  );
-
-  ctx.lineTo(
-    x + w - notch,
-    y
-  );
-
-  ctx.lineTo(
-    x + w,
-    y + h / 2
-  );
-
-  ctx.lineTo(
-    x + w - notch,
-    y + h
-  );
-
-  ctx.lineTo(
-    x + notch,
-    y + h
-  );
-
-  ctx.lineTo(
-    x,
-    y + h / 2
-  );
-
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
 
-/**
- * Dessine un ruban doré premium.
- */
-function drawRibbon(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  y: number,
-  height: number,
-  text: string,
-  options: {
-    maxWidth: number;
-    startSize?: number;
-    minSize?: number;
-    horizontalPadding?: number;
-  } = {
-    maxWidth: 760,
-  }
-) {
-  const startSize =
-    options.startSize ?? 32;
-
-  const minSize =
-    options.minSize ?? 15;
-
-  const horizontalPadding =
-    options.horizontalPadding ?? 90;
-
-  const cleanText =
-    text.trim() || "PARTENAIRE";
-
-  let size =
-    startSize;
-
-  ctx.font =
-    sansFont(
-      size,
-      700
-    );
-
-  while (
-    size > minSize &&
-    ctx.measureText(
-      cleanText
-    ).width >
-      options.maxWidth
-  ) {
-    size -= 1;
-
-    ctx.font =
-      sansFont(
-        size,
-        700
-      );
-  }
-
-  const textWidth =
-    ctx.measureText(
-      cleanText
-    ).width;
-
-  const width =
-    Math.min(
-      textWidth +
-        horizontalPadding,
-      WIDTH - 120
-    );
-
-  const x =
-    centerX -
-    width / 2;
-
-  /* -------------------------------------------------------------- */
-  /* Ombre                                                         */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
-  ctx.shadowColor =
-    "rgba(0,0,0,0.42)";
-
-  ctx.shadowBlur = 16;
-
-  ctx.shadowOffsetY = 5;
-
-  ribbonPath(
-    ctx,
-    x,
-    y,
-    width,
-    height,
-    16
-  );
-
-  const gradient =
-    ctx.createLinearGradient(
-      0,
-      y,
-      0,
-      y + height
-    );
-
-  gradient.addColorStop(
-    0,
-    COLORS.goldLight
-  );
-
-  gradient.addColorStop(
-    0.48,
-    COLORS.gold
-  );
-
-  gradient.addColorStop(
-    1,
-    COLORS.goldDark
-  );
-
-  ctx.fillStyle =
-    gradient;
-
-  ctx.fill();
-
-  ctx.restore();
-
-  /* -------------------------------------------------------------- */
-  /* Bordure                                                        */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
-  ribbonPath(
-    ctx,
-    x,
-    y,
-    width,
-    height,
-    16
-  );
-
-  ctx.strokeStyle =
-    "rgba(74,14,18,0.45)";
-
-  ctx.lineWidth = 2;
-
-  ctx.stroke();
-
-  /* Highlight supérieur */
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    x + 20,
-    y + 3
-  );
-
-  ctx.lineTo(
-    x + width - 20,
-    y + 3
-  );
-
-  ctx.strokeStyle =
-    "rgba(255,255,255,0.28)";
-
-  ctx.lineWidth = 1;
-
-  ctx.stroke();
-
-  ctx.restore();
-
-  /* -------------------------------------------------------------- */
-  /* Texte                                                          */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
-  ctx.fillStyle =
-    COLORS.maroon;
-
-  ctx.font =
-    sansFont(
-      size,
-      700
-    );
-
-  ctx.textAlign =
-    "center";
-
-  ctx.textBaseline =
-    "middle";
-
-  ctx.fillText(
-    cleanText,
-    centerX,
-    y + height / 2 + 1
-  );
-
-  ctx.restore();
-}
-
-/**
- * Retourne les lignes d'un texte avec une largeur maximale.
- */
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
   maxLines: number
 ): string[] {
-  const words =
-    text
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-
-  if (
-    words.length === 0
-  ) {
-    return [];
-  }
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
 
   const lines: string[] = [];
-
   let current = "";
-
-  for (
-    const word of words
-  ) {
-    const candidate =
-      current
-        ? `${current} ${word}`
-        : word;
-
-    if (
-      ctx.measureText(
-        candidate
-      ).width <= maxWidth ||
-      !current
-    ) {
-      current =
-        candidate;
-
-      continue;
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxWidth || !current) {
+      current = candidate;
+    } else {
+      if (lines.length === maxLines - 1) {
+        current = `${current} ${word}`;
+        break;
+      }
+      lines.push(current);
+      current = word;
     }
-
-    if (
-      lines.length ===
-      maxLines - 1
-    ) {
-      current =
-        `${current} ${word}`;
-
-      break;
-    }
-
-    lines.push(
-      current
-    );
-
-    current =
-      word;
   }
+  if (current) lines.push(current);
 
-  if (current) {
-    lines.push(
-      current
-    );
+  const kept = lines.slice(0, maxLines);
+  if (lines.length > maxLines) {
+    kept[maxLines - 1] = `${kept[maxLines - 1].replace(/\s+\S*$/, "")}…`;
   }
-
-  const kept =
-    lines.slice(
-      0,
-      maxLines
-    );
-
-  if (
-    lines.length >
-    maxLines
-  ) {
-    const lastIndex =
-      maxLines - 1;
-
-    let last =
-      kept[lastIndex];
-
-    while (
-      last.length > 0 &&
-      ctx.measureText(
-        `${last}…`
-      ).width >
-        maxWidth
-    ) {
-      last =
-        last.replace(
-          /\s+\S*$/,
-          ""
-        );
-    }
-
-    kept[lastIndex] =
-      `${last}…`;
-  }
-
   return kept;
 }
 
-/**
- * Dessine un cadre arrondi.
- */
-function drawRoundedPanel(
+function fitFont(
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
+  text: string,
+  maxWidth: number,
+  startSize: number,
+  weight: number,
+  minSize: number
 ) {
-  ctx.beginPath();
-
-  ctx.roundRect(
-    x,
-    y,
-    width,
-    height,
-    radius
-  );
+  let size = startSize;
+  ctx.font = sansFont(size, weight);
+  while (size > minSize && ctx.measureText(text).width > maxWidth) {
+    size -= 2;
+    ctx.font = sansFont(size, weight);
+  }
+  return size;
 }
 
-/* ------------------------------------------------------------------ */
-/* Décor fallback                                                     */
-/* ------------------------------------------------------------------ */
-
-/**
- * Lueur chaude utilisée uniquement lorsque
- * l'affiche officielle n'est pas disponible.
- */
-function drawEmberGlow(
-  ctx: CanvasRenderingContext2D
+/** Étoile à cinq branches, dessinée dans une boîte. */
+function drawStar(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  outer: number,
+  inner: number
 ) {
-  const glow =
-    ctx.createRadialGradient(
-      880,
-      340,
-      40,
-      880,
-      340,
-      780
-    );
-
-  glow.addColorStop(
-    0,
-    "rgba(255,178,89,0.95)"
-  );
-
-  glow.addColorStop(
-    0.28,
-    "rgba(255,122,24,0.65)"
-  );
-
-  glow.addColorStop(
-    0.62,
-    "rgba(180,50,10,0.28)"
-  );
-
-  glow.addColorStop(
-    1,
-    "rgba(27,6,5,0)"
-  );
-
-  ctx.fillStyle =
-    glow;
-
-  ctx.fillRect(
-    0,
-    0,
-    WIDTH,
-    HEIGHT
-  );
-
-  const shade =
-    ctx.createLinearGradient(
-      0,
-      0,
-      WIDTH * 0.75,
-      HEIGHT
-    );
-
-  shade.addColorStop(
-    0,
-    "rgba(15,4,4,0.85)"
-  );
-
-  shade.addColorStop(
-    0.55,
-    "rgba(15,4,4,0.12)"
-  );
-
-  shade.addColorStop(
-    1,
-    "rgba(15,4,4,0)"
-  );
-
-  ctx.fillStyle =
-    shade;
-
-  ctx.fillRect(
-    0,
-    0,
-    WIDTH,
-    HEIGHT
-  );
-}
-
-/**
- * Architecture utilisée uniquement si aucune affiche officielle
- * n'est fournie.
- */
-function drawArchitecture(
-  ctx: CanvasRenderingContext2D
-) {
-  ctx.save();
-
-  ctx.fillStyle =
-    "rgba(24,6,4,0.72)";
-
-  /* Minaret principal */
-
-  ctx.fillRect(
-    872,
-    300,
-    96,
-    700
-  );
-
-  ctx.fillRect(
-    852,
-    286,
-    136,
-    26
-  );
-
-  ctx.fillRect(
-    886,
-    200,
-    68,
-    90
-  );
-
-  ctx.fillRect(
-    872,
-    186,
-    96,
-    18
-  );
-
   ctx.beginPath();
-
-  ctx.arc(
-    920,
-    186,
-    48,
-    Math.PI,
-    0
-  );
-
-  ctx.fill();
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    920,
-    84
-  );
-
-  ctx.lineTo(
-    908,
-    140
-  );
-
-  ctx.lineTo(
-    932,
-    140
-  );
-
+  for (let i = 0; i < 10; i += 1) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
   ctx.closePath();
+  ctx.fill();
+}
 
+/* ------------------------------------------------------------------ */
+/* Décor                                                               */
+/* ------------------------------------------------------------------ */
+
+/** Minaret et mosquée en gris très clair, comme sur le gabarit. */
+function drawLightArchitecture(ctx: CanvasRenderingContext2D) {
+  ctx.save();
+  ctx.fillStyle = COLORS.stone;
+
+  // Minaret à gauche
+  ctx.fillRect(88, 356, 68, 620);
+  ctx.fillRect(74, 342, 96, 20);
+  ctx.fillRect(99, 268, 46, 76);
+  ctx.fillRect(90, 256, 64, 14);
+  ctx.beginPath();
+  ctx.arc(122, 256, 32, Math.PI, 0);
   ctx.fill();
 
-  /* Minaret secondaire */
-
-  ctx.fillRect(
-    1012,
-    470,
-    58,
-    530
-  );
-
-  ctx.fillRect(
-    1000,
-    458,
-    82,
-    20
-  );
-
+  // Mosquée à droite
   ctx.beginPath();
-
-  ctx.arc(
-    1041,
-    458,
-    29,
-    Math.PI,
-    0
-  );
-
+  ctx.arc(930, 640, 142, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(788, 640, 284, 190);
+  ctx.beginPath();
+  ctx.moveTo(930, 462);
+  ctx.lineTo(920, 504);
+  ctx.lineTo(940, 504);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(1002, 730, 42, 240);
+  ctx.beginPath();
+  ctx.arc(1023, 730, 21, Math.PI, 0);
   ctx.fill();
 
   ctx.restore();
 }
 
-/**
- * Motifs décoratifs très discrets.
- */
-function drawOrnament(
-  ctx: CanvasRenderingContext2D
-) {
+/** Champ de points dorés, en diagonale, dans un coin haut. */
+function drawCornerDots(ctx: CanvasRenderingContext2D) {
   ctx.save();
-
-  ctx.strokeStyle =
-    "rgba(255,235,210,0.07)";
-
-  ctx.lineWidth = 2;
-
-  for (
-    const centerX of [
-      26,
-      WIDTH - 26,
-    ]
-  ) {
-    for (
-      let y = 60;
-      y < HEIGHT - 40;
-      y += 96
-    ) {
-      ctx.save();
-
-      ctx.translate(
-        centerX,
-        y
-      );
-
-      ctx.rotate(
-        Math.PI / 4
-      );
-
-      ctx.strokeRect(
-        -20,
-        -20,
-        40,
-        40
-      );
-
-      ctx.restore();
-
+  ctx.fillStyle = COLORS.goldSoft;
+  for (let row = 0; row < 9; row += 1) {
+    for (let col = 0; col < 9 - row; col += 1) {
+      const step = 22;
+      const y = 214 + row * step;
+      const leftX = 26 + col * step;
+      const rightX = WIDTH - 26 - col * step;
       ctx.beginPath();
-
-      ctx.arc(
-        centerX,
-        y + 48,
-        16,
-        Math.PI * 0.15,
-        Math.PI * 0.85
-      );
-
-      ctx.stroke();
+      ctx.arc(leftX, y, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(rightX, y, 2.8, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
-
   ctx.restore();
 }
 
-/* ------------------------------------------------------------------ */
-/* Affiche officielle                                                 */
-/* ------------------------------------------------------------------ */
-
-/**
- * Dessine l'affiche officielle comme un véritable background.
- *
- * Règles :
- *
- * 1. Aucun blur.
- * 2. Aucun filtre.
- * 3. Aucun overlay.
- * 4. Aucun recadrage.
- * 5. Aucune déformation.
- *
- * Si le ratio est identique au canvas :
- * → rendu exactement sur toute la surface.
- *
- * Si le ratio est différent :
- * → contain, donc l'intégralité de l'image reste visible.
- */
-function drawOfficialArtwork(
-  ctx: CanvasRenderingContext2D,
-  artwork: HTMLImageElement
-) {
-  if (
-    !artwork ||
-    artwork.width <= 0 ||
-    artwork.height <= 0
-  ) {
-    return;
-  }
-
-  /*
-   * Ratio de l'image originale.
-   */
-  const imageRatio =
-    artwork.width /
-    artwork.height;
-
-  /*
-   * Ratio du canvas.
-   */
-  const canvasRatio =
-    WIDTH / HEIGHT;
-
-  let drawWidth: number;
-  let drawHeight: number;
-  let drawX: number;
-  let drawY: number;
-
-  /*
-   * Cas idéal :
-   *
-   * L'affiche a exactement le même ratio
-   * que notre format 1080 × 1350.
-   */
-  if (
-    Math.abs(
-      imageRatio -
-        canvasRatio
-    ) < 0.001
-  ) {
-    drawWidth =
-      WIDTH;
-
-    drawHeight =
-      HEIGHT;
-
-    drawX = 0;
-    drawY = 0;
-  } else {
-    /*
-     * Cas où l'affiche possède un ratio différent.
-     *
-     * On utilise contain.
-     *
-     * IMPORTANT :
-     * on ne coupe absolument rien.
-     */
-    const scaleX =
-      WIDTH /
-      artwork.width;
-
-    const scaleY =
-      HEIGHT /
-      artwork.height;
-
-    const imageScale =
-      Math.min(
-        scaleX,
-        scaleY
-      );
-
-    drawWidth =
-      artwork.width *
-      imageScale;
-
-    drawHeight =
-      artwork.height *
-      imageScale;
-
-    drawX =
-      (WIDTH -
-        drawWidth) /
-      2;
-
-    /*
-     * Collee en haut :
-     * aucune bande sombre n'apparait
-     * au-dessus de l'affiche.
-     */
-    drawY = 0;
-  }
-
-  /*
-   * Fond derrière l'affiche
-   * uniquement dans le cas où contain
-   * laisse apparaître des bandes.
-   *
-   * Ce fond ne touche jamais à l'affiche elle-même.
-   */
-  ctx.save();
-
-  ctx.fillStyle =
-    COLORS.night;
-
-  ctx.fillRect(
-    0,
-    0,
-    WIDTH,
-    HEIGHT
-  );
-
-  /*
-   * Aucun filtre.
-   */
-  ctx.filter =
-    "none";
-
-  /*
-   * Opacité complète.
-   */
-  ctx.globalAlpha =
-    1;
-
-  /*
-   * Mode de composition normal.
-   */
-  ctx.globalCompositeOperation =
-    "source-over";
-
-  /*
-   * Dessin de l'affiche officielle.
-   */
-  ctx.drawImage(
-    artwork,
-    drawX,
-    drawY,
-    drawWidth,
-    drawHeight
-  );
-
-  /*
-   * Si l'image est moins haute que le canvas,
-   * le reliquat est rempli avec la teinte de son
-   * propre bandeau creme : aucun trait noir
-   * n'apparait en bas non plus.
-   */
-  const reste =
-    HEIGHT -
-    drawY -
-    drawHeight;
-
-  if (reste > 1) {
-    try {
-      const pixel = ctx.getImageData(
-        Math.round(drawX + drawWidth / 2),
-        Math.round(drawY + drawHeight) - 30,
-        1,
-        1
-      ).data;
-
-      ctx.fillStyle = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-    } catch {
-      ctx.fillStyle = COLORS.night;
-    }
-
-    ctx.fillRect(
-      0,
-      drawY + drawHeight,
-      WIDTH,
-      reste
-    );
-  }
-
-  ctx.restore();
-}
-
-/* ------------------------------------------------------------------ */
-/* Logo partenaire                                                   */
-/* ------------------------------------------------------------------ */
-
-/**
- * Dessine le cercle contenant le logo du partenaire.
- */
-function drawPartnerLogo(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  radius: number,
-  logo: HTMLImageElement | null,
-  fallbackLetter: string
-) {
-  /* -------------------------------------------------------------- */
-  /* Halo extérieur                                                 */
-  /* -------------------------------------------------------------- */
+/** Vague rouge bordée d'or qui ferme l'affiche. */
+function drawBottomWave(ctx: CanvasRenderingContext2D) {
+  const top = 1268;
 
   ctx.save();
 
-  const halo =
-    ctx.createRadialGradient(
-      centerX,
-      centerY,
-      radius * 0.65,
-      centerX,
-      centerY,
-      radius * 1.35
-    );
-
-  halo.addColorStop(
-    0,
-    "rgba(255,190,80,0.38)"
-  );
-
-  halo.addColorStop(
-    0.65,
-    "rgba(255,145,40,0.14)"
-  );
-
-  halo.addColorStop(
-    1,
-    "rgba(255,145,40,0)"
-  );
-
-  ctx.fillStyle =
-    halo;
-
+  // Motif géométrique très discret dans la vague
   ctx.beginPath();
-
-  ctx.arc(
-    centerX,
-    centerY,
-    radius * 1.35,
-    0,
-    Math.PI * 2
-  );
-
+  ctx.moveTo(0, top);
+  ctx.bezierCurveTo(320, top - 22, 700, top + 20, WIDTH, top - 14);
+  ctx.lineTo(WIDTH, HEIGHT);
+  ctx.lineTo(0, HEIGHT);
+  ctx.closePath();
+  ctx.fillStyle = COLORS.red;
   ctx.fill();
-
-  ctx.restore();
-
-  /* -------------------------------------------------------------- */
-  /* Ombre du cercle                                                */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
-  ctx.shadowColor =
-    "rgba(0,0,0,0.40)";
-
-  ctx.shadowBlur = 28;
-
-  ctx.shadowOffsetY = 8;
-
-  ctx.beginPath();
-
-  ctx.arc(
-    centerX,
-    centerY,
-    radius,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fillStyle =
-    "#FFFDF7";
-
-  ctx.fill();
-
-  ctx.restore();
-
-  /* -------------------------------------------------------------- */
-  /* Logo                                                           */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
-  ctx.beginPath();
-
-  ctx.arc(
-    centerX,
-    centerY,
-    radius - 3,
-    0,
-    Math.PI * 2
-  );
-
   ctx.clip();
 
-  if (
-    logo &&
-    logo.width > 0 &&
-    logo.height > 0
-  ) {
-    /*
-     * Marge intérieure.
-     *
-     * Elle permet de garder les logos
-     * élégants qu'ils soient horizontaux,
-     * carrés ou verticaux.
-     */
-    const maxW =
-      radius * 2 - 80;
-
-    const maxH =
-      radius * 2 - 80;
-
-    const ratio =
-      Math.min(
-        maxW / logo.width,
-        maxH / logo.height
-      );
-
-    const dw =
-      logo.width *
-      ratio;
-
-    const dh =
-      logo.height *
-      ratio;
-
-    ctx.drawImage(
-      logo,
-      centerX - dw / 2,
-      centerY - dh / 2,
-      dw,
-      dh
-    );
-  } else {
-    ctx.fillStyle =
-      COLORS.maroon;
-
-    ctx.font =
-      sansFont(
-        120,
-        800
-      );
-
-    ctx.textAlign =
-      "center";
-
-    ctx.textBaseline =
-      "middle";
-
-    ctx.fillText(
-      fallbackLetter,
-      centerX,
-      centerY
-    );
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
+  ctx.lineWidth = 2;
+  for (let x = -40; x < WIDTH + 120; x += 46) {
+    ctx.beginPath();
+    ctx.moveTo(x, HEIGHT);
+    ctx.lineTo(x + 120, top - 30);
+    ctx.stroke();
   }
 
   ctx.restore();
 
-  /* -------------------------------------------------------------- */
-  /* Bordures dorées                                               */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
+  // Filet doré au sommet de la vague
   ctx.beginPath();
-
-  ctx.arc(
-    centerX,
-    centerY,
-    radius,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.strokeStyle =
-    "rgba(223,174,78,0.95)";
-
-  ctx.lineWidth = 5;
-
+  ctx.moveTo(0, top);
+  ctx.bezierCurveTo(320, top - 34, 700, top + 26, WIDTH, top - 20);
+  ctx.strokeStyle = COLORS.gold;
+  ctx.lineWidth = 9;
   ctx.stroke();
-
-  /* Deuxième bordure */
-
-  ctx.beginPath();
-
-  ctx.arc(
-    centerX,
-    centerY,
-    radius - 8,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.strokeStyle =
-    "rgba(223,174,78,0.22)";
-
-  ctx.lineWidth = 1;
-
-  ctx.stroke();
-
-  ctx.restore();
 }
 
 /* ------------------------------------------------------------------ */
-/* Nom du partenaire                                                 */
+/* Icônes de la ligne d'informations (rouge)                           */
 /* ------------------------------------------------------------------ */
 
-/**
- * Ruban du nom.
- *
- * Le ruban chevauche volontairement
- * le bas du cercle.
- */
-function drawPartnerName(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  y: number,
-  name: string
-) {
-  drawRibbon(
-    ctx,
-    centerX,
-    y,
-    66,
-    name.toUpperCase(),
-    {
-      maxWidth: 760,
-      startSize: 30,
-      minSize: 15,
-      horizontalPadding: 100,
-    }
-  );
+function drawCalendarIcon(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.save();
+  ctx.strokeStyle = COLORS.red;
+  ctx.fillStyle = COLORS.red;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(x - 26, y - 22, 52, 46, 8);
+  ctx.stroke();
+  ctx.fillRect(x - 26, y - 10, 52, 5);
+  ctx.fillRect(x - 14, y - 30, 5, 14);
+  ctx.fillRect(x + 9, y - 30, 5, 14);
+  ctx.restore();
 }
 
-/* ------------------------------------------------------------------ */
-/* Description                                                        */
-/* ------------------------------------------------------------------ */
-
-function drawDescriptionPanel(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  y: number,
-  message: string
-) {
-  const panelX = 70;
-
-  const panelWidth =
-    WIDTH - 140;
-
-  const panelHeight =
-    155;
-
-  const radius = 12;
-
-  /* -------------------------------------------------------------- */
-  /* Ombre                                                          */
-  /* -------------------------------------------------------------- */
-
+function drawPinIcon(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.save();
-
-  ctx.shadowColor =
-    "rgba(0,0,0,0.36)";
-
-  ctx.shadowBlur = 18;
-
-  ctx.shadowOffsetY = 6;
-
-  drawRoundedPanel(
-    ctx,
-    panelX,
-    y,
-    panelWidth,
-    panelHeight,
-    radius
-  );
-
-  ctx.fillStyle =
-    "rgba(20,3,3,0.78)";
-
-  ctx.fill();
-
-  ctx.restore();
-
-  /* -------------------------------------------------------------- */
-  /* Bordure principale                                             */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
-  drawRoundedPanel(
-    ctx,
-    panelX,
-    y,
-    panelWidth,
-    panelHeight,
-    radius
-  );
-
-  ctx.strokeStyle =
-    "rgba(223,174,78,0.82)";
-
-  ctx.lineWidth = 2;
-
-  ctx.stroke();
-
-  /* Bordure intérieure */
-
-  drawRoundedPanel(
-    ctx,
-    panelX + 7,
-    y + 7,
-    panelWidth - 14,
-    panelHeight - 14,
-    radius - 3
-  );
-
-  ctx.strokeStyle =
-    "rgba(243,208,138,0.24)";
-
-  ctx.lineWidth = 1;
-
-  ctx.stroke();
-
-  ctx.restore();
-
-  /* -------------------------------------------------------------- */
-  /* Élément décoratif supérieur                                    */
-  /* -------------------------------------------------------------- */
-
-  ctx.save();
-
-  ctx.strokeStyle =
-    "rgba(223,174,78,0.70)";
-
-  ctx.lineWidth = 2;
-
+  ctx.fillStyle = COLORS.red;
   ctx.beginPath();
-
-  ctx.moveTo(
-    centerX - 95,
-    y + 15
-  );
-
-  ctx.lineTo(
-    centerX - 25,
-    y + 15
-  );
-
-  ctx.moveTo(
-    centerX + 25,
-    y + 15
-  );
-
-  ctx.lineTo(
-    centerX + 95,
-    y + 15
-  );
-
-  ctx.stroke();
-
-  ctx.fillStyle =
-    COLORS.gold;
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    centerX,
-    y + 9
-  );
-
-  ctx.lineTo(
-    centerX + 6,
-    y + 15
-  );
-
-  ctx.lineTo(
-    centerX,
-    y + 21
-  );
-
-  ctx.lineTo(
-    centerX - 6,
-    y + 15
-  );
-
+  ctx.arc(x, y - 6, 21, Math.PI, 0);
+  ctx.lineTo(x + 21, y + 8);
+  ctx.quadraticCurveTo(x, y + 34, x - 21, y + 8);
   ctx.closePath();
-
   ctx.fill();
-
+  ctx.fillStyle = COLORS.paper;
+  ctx.beginPath();
+  ctx.arc(x, y - 6, 8, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
+}
 
-  /* -------------------------------------------------------------- */
-  /* Texte                                                          */
-  /* -------------------------------------------------------------- */
-
-  const cleanMessage =
-    message.trim();
-
+function drawPeopleIcon(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.save();
-
-  let fontSize = 25;
-
-  ctx.font =
-    sansFont(
-      fontSize,
-      400
-    );
-
-  const maxTextWidth =
-    panelWidth - 90;
-
-  /*
-   * Réduction légère de la taille
-   * si le texte est très long.
-   */
-  while (
-    fontSize > 18 &&
-    cleanMessage &&
-    ctx.measureText(
-      cleanMessage
-    ).width >
-      maxTextWidth * 1.35
-  ) {
-    fontSize -= 1;
-
-    ctx.font =
-      sansFont(
-        fontSize,
-        400
-      );
-  }
-
-  const lines =
-    cleanMessage
-      ? wrapText(
-          ctx,
-          cleanMessage,
-          maxTextWidth,
-          3
-        )
-      : [
-          "Merci de votre soutien à la Convention.",
-        ];
-
-  ctx.fillStyle =
-    "#FFFFFF";
-
-  ctx.textAlign =
-    "center";
-
-  ctx.textBaseline =
-    "middle";
-
-  ctx.shadowColor =
-    "rgba(0,0,0,0.60)";
-
-  ctx.shadowBlur = 7;
-
-  ctx.shadowOffsetY = 2;
-
-  const lineHeight =
-    fontSize + 12;
-
-  const totalHeight =
-    lines.length *
-    lineHeight;
-
-  const firstY =
-    y +
-    panelHeight / 2 -
-    totalHeight / 2 +
-    lineHeight / 2 +
-    5;
-
-  lines.forEach(
-    (
-      line,
-      index
-    ) => {
-      ctx.fillText(
-        line,
-        centerX,
-        firstY +
-          index *
-            lineHeight
-      );
-    }
-  );
-
+  ctx.fillStyle = COLORS.red;
+  ctx.beginPath();
+  ctx.arc(x - 22, y - 8, 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 22, y - 8, 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y - 18, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x - 22, y + 18, 19, Math.PI, 0);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 22, y + 18, 19, Math.PI, 0);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y + 10, 23, Math.PI, 0);
+  ctx.fill();
   ctx.restore();
 }
 
 /* ------------------------------------------------------------------ */
-/* Génération de l'affiche                                           */
+/* Génération                                                          */
 /* ------------------------------------------------------------------ */
 
 /**
- * Génère l'affiche partenaire.
- *
- * Philosophie :
- *
- * ┌─────────────────────────────────────┐
- * │                                     │
- * │     AFFICHE OFFICIELLE              │
- * │     100 % INTACTE                   │
- * │                                     │
- * │  JCI Niger | Convention | JCI Maradi│
- * │                                     │
- * │             LOGO PARTENAIRE         │
- * │                  ◯                  │
- * │               ━━━━━━━               │
- * │               NOM                   │
- * │                                     │
- * │          PARTENAIRE OFFICIEL        │
- * │                                     │
- * │        ┌─────────────────┐          │
- * │        │    MESSAGE      │          │
- * │        └─────────────────┘          │
- * │                                     │
- * └─────────────────────────────────────┘
- *
- * L'affiche officielle n'est jamais floutée,
- * assombrie ou recadrée.
+ * Affiche partenaire : fond clair, bandeau de logos de la Convention,
+ * cercle rouge avec le logo, pastille du type de partnership, cadre de la
+ * description, slogan et informations pratiques, vague rouge et or.
  */
 export async function drawPartnerPoster(
   canvas: HTMLCanvasElement,
   data: PartnerPosterData,
-  options: {
-    scale?: number;
-  } = {}
+  options: { scale?: number } = {}
 ) {
-  /*
-   * Scale 1 :
-   * 1080 × 1350
-   *
-   * Scale 2 :
-   * 2160 × 2700
-   *
-   * etc.
-   */
-  const scale =
-    Math.max(
-      0.5,
-      options.scale ?? 1
-    );
+  const scale = options.scale ?? 1;
+  canvas.width = Math.round(WIDTH * scale);
+  canvas.height = Math.round(HEIGHT * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.scale(scale, scale);
 
-  canvas.width =
-    Math.round(
-      WIDTH * scale
-    );
+  const centerX = WIDTH / 2;
 
-  canvas.height =
-    Math.round(
-      HEIGHT * scale
-    );
+  /* ---------------- Fond ---------------- */
+  const background = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  background.addColorStop(0, COLORS.paper);
+  background.addColorStop(0.55, COLORS.cream);
+  background.addColorStop(1, COLORS.paper);
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  const ctx =
-    canvas.getContext(
-      "2d"
-    );
-
-  if (!ctx) {
-    return;
+  // Image de l'événement, floutée, en arrière-plan
+  const hero =
+    data.artwork ??
+    (await loadImageFromUrl("/hero_image.png").catch(() => null));
+  if (hero && hero.width > 0) {
+    ctx.save();
+    // Agrandissement léger : le flou ne laisse pas de bord transparent.
+    const ratio = Math.max((WIDTH * 1.08) / hero.width, (HEIGHT * 1.08) / hero.height);
+    const dw = hero.width * ratio;
+    const dh = hero.height * ratio;
+    ctx.filter = "blur(26px)";
+    ctx.drawImage(hero, (WIDTH - dw) / 2, (HEIGHT - dh) / 2, dw, dh);
+    ctx.filter = "none";
+    // Laque claire : le rouge du texte doit rester lisible.
+    ctx.fillStyle = "rgba(255,255,255,0.80)";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.restore();
   }
 
-  /*
-   * Toute la composition est dessinée
-   * dans un espace logique de 1080 × 1350.
-   */
-  ctx.setTransform(
-    scale,
-    0,
-    0,
-    scale,
-    0,
-    0
-  );
+  drawLightArchitecture(ctx);
+  drawCornerDots(ctx);
 
-  ctx.clearRect(
-    0,
-    0,
-    WIDTH,
-    HEIGHT
-  );
+  /* ---------------- Les trois logos ---------------- */
+  const logos = await Promise.all([
+    loadImageFromUrl("/jci_niger.png").catch(() => null),
+    loadImageFromUrl("/logo.png").catch(() => null),
+    loadImageFromUrl("/jci_maradi.png").catch(() => null),
+  ]);
 
-  const centerX =
-    WIDTH / 2;
+  // Même hauteur pour les trois logos : ils paraissent de taille identique.
+  const logoBox = { w: 272, h: 96 };
+  const boxes = [
+    { x: 168, w: logoBox.w, h: logoBox.h },
+    { x: centerX, w: logoBox.w, h: logoBox.h },
+    { x: WIDTH - 168, w: logoBox.w, h: logoBox.h },
+  ];
 
-  const name =
-    data.name.trim() ||
-    "Partenaire";
+  // Les marges des logos JCI sont rognées : sans cela ils paraîtraient
+  // nettement plus petits que le logo de la Convention.
+  logos.forEach((image, index) => {
+    if (!image || image.width <= 0) return;
+    const box = boxes[index];
+    const logo = trimLogoEdges(image);
+    // La hauteur est prioritaire : c'est elle qui donne la taille perçue.
+    const ratio = Math.min(box.h / logo.height, box.w / logo.width);
+    const dw = logo.width * ratio;
+    const dh = logo.height * ratio;
+    ctx.drawImage(logo, box.x - dw / 2, 92 - dh / 2, dw, dh);
+  });
 
-  /* ================================================================ */
-  /* FOND                                                            */
-  /* ================================================================ */
+  // Filet rouge + pastille dorée
+  ctx.beginPath();
+  ctx.moveTo(60, 186);
+  ctx.lineTo(centerX - 22, 186);
+  ctx.moveTo(centerX + 22, 186);
+  ctx.lineTo(WIDTH - 60, 186);
+  ctx.strokeStyle = COLORS.red;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = COLORS.red;
+  ctx.beginPath();
+  ctx.arc(centerX, 186, 9, 0, Math.PI * 2);
+  ctx.fill();
 
-  const artwork =
-    data.artwork;
+  /* ---------------- Cercle rouge + logo ---------------- */
+  const circleY = 424;
+  const outerR = 224;
 
-  if (
-    artwork &&
-    artwork.width > 0 &&
-    artwork.height > 0
-  ) {
-    /*
-     * IMPORTANT :
-     *
-     * Ici nous ne faisons absolument
-     * rien à l'affiche officielle.
-     *
-     * Pas de :
-     * - blur
-     * - overlay
-     * - opacity
-     * - filtre
-     * - assombrissement
-     * - recadrage
-     */
-    drawOfficialArtwork(
-      ctx,
-      artwork
-    );
-  } else {
-    /*
-     * Fallback uniquement si aucune affiche
-     * officielle n'est fournie.
-     */
-    const background =
-      ctx.createLinearGradient(
-        0,
-        0,
-        WIDTH,
-        HEIGHT
-      );
-
-    background.addColorStop(
-      0,
-      COLORS.night
-    );
-
-    background.addColorStop(
-      0.5,
-      COLORS.deep
-    );
-
-    background.addColorStop(
-      1,
-      COLORS.night
-    );
-
-    ctx.fillStyle =
-      background;
-
-    ctx.fillRect(
-      0,
-      0,
-      WIDTH,
-      HEIGHT
-    );
-
-    drawEmberGlow(
-      ctx
-    );
-
-    drawArchitecture(
-      ctx
-    );
-
-    drawOrnament(
-      ctx
-    );
-  }
-
-  /* ================================================================ */
-  /* LOGO PARTENAIRE                                                 */
-  /* ================================================================ */
-
-  /*
-   * Le partenaire est volontairement
-   * placé sous la zone des logos officiels.
-   *
-   * L'affiche officielle reste visible
-   * derrière lui.
-   */
-  const circleY = 405;
-
-  const circleR = 174;
-
-  drawPartnerLogo(
-    ctx,
-    centerX,
-    circleY,
-    circleR,
-    data.logo,
-    name
-      .charAt(0)
-      .toUpperCase()
-  );
-
-  /* ================================================================ */
-  /* NOM DU PARTENAIRE                                               */
-  /* ================================================================ */
-
-  const nameRibbonY =
-    circleY +
-    circleR -
-    30;
-
-  drawPartnerName(
-    ctx,
-    centerX,
-    nameRibbonY,
-    name
-  );
-
-  /* ================================================================ */
-  /* TYPE DE PARTENARIAT                                             */
-  /* ================================================================ */
-
-  const category =
-    data.category.trim() ||
-    "PARTENAIRE";
-
-  const categoryY =
-    nameRibbonY + 88;
-
-  drawRibbon(
-    ctx,
-    centerX,
-    categoryY,
-    54,
-    category.toUpperCase(),
-    {
-      maxWidth: 720,
-      startSize: 25,
-      minSize: 14,
-      horizontalPadding: 90,
-    }
-  );
-
-  /* ================================================================ */
-  /* DESCRIPTION                                                     */
-  /* ================================================================ */
-
-  const descriptionY =
-    categoryY + 76;
-
-  drawDescriptionPanel(
-    ctx,
-    centerX,
-    descriptionY,
-    data.message
-  );
-
-  /* ================================================================ */
-  /* BORDURE EXTÉRIEURE                                             */
-  /* ================================================================ */
-
-  /*
-   * Cette bordure est uniquement un élément
-   * ajouté par le générateur.
-   *
-   * Elle ne modifie pas l'affiche originale.
-   */
   ctx.save();
-
-  ctx.strokeStyle =
-    "rgba(223,174,78,0.18)";
-
-  ctx.lineWidth = 2;
-
-  ctx.strokeRect(
-    14,
-    14,
-    WIDTH - 28,
-    HEIGHT - 28
-  );
-
+  ctx.shadowColor = "rgba(200,16,46,0.18)";
+  ctx.shadowBlur = 30;
+  ctx.shadowOffsetY = 8;
+  ctx.beginPath();
+  ctx.arc(centerX, circleY, outerR, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.red;
+  ctx.fill();
   ctx.restore();
 
-  /* ================================================================ */
-  /* RESET DU CANVAS                                                 */
-  /* ================================================================ */
+  ctx.beginPath();
+  ctx.arc(centerX, circleY, outerR - 14, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.paper;
+  ctx.fill();
 
-  ctx.setTransform(
-    1,
-    0,
-    0,
-    1,
-    0,
-    0
-  );
+  ctx.beginPath();
+  ctx.arc(centerX, circleY, outerR - 26, 0, Math.PI * 2);
+  ctx.strokeStyle = COLORS.redSoft;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  if (data.logo) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(centerX, circleY, outerR - 34, 0, Math.PI * 2);
+    ctx.clip();
+    const maxW = outerR * 1.35;
+    const maxH = outerR * 1.35;
+    const ratio = Math.min(maxW / data.logo.width, maxH / data.logo.height);
+    const dw = data.logo.width * ratio;
+    const dh = data.logo.height * ratio;
+    ctx.drawImage(data.logo, centerX - dw / 2, circleY - dh / 2, dw, dh);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = COLORS.red;
+    ctx.font = sansFont(150, 800);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      data.name ? data.name.charAt(0).toUpperCase() : "P",
+      centerX,
+      circleY + 6
+    );
+    ctx.textBaseline = "alphabetic";
+  }
+
+  /* ---------------- Pastille : type de partnership ---------------- */
+  const category = data.category.trim().toUpperCase() || "PARTENAIRE";
+  const pillY = 672;
+  const pillH = 96;
+
+  let pillSize = 40;
+  ctx.font = sansFont(pillSize, 800);
+  const starSize = 34;
+  ctx.font = sansFont(starSize, 800);
+  const starWidth = ctx.measureText("★").width;
+  ctx.font = sansFont(pillSize, 800);
+  const labelWidth = ctx.measureText(category).width;
+  const pillWidth = Math.min(starWidth + 24 + labelWidth + 24 + starWidth, WIDTH - 80);
+
+  roundedRectPath(ctx, centerX - pillWidth / 2, pillY, pillWidth, pillH, pillH / 2);
+  ctx.fillStyle = COLORS.paper;
+  ctx.fill();
+  ctx.strokeStyle = COLORS.red;
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  // Étoiles dorées de part et d'autre du libellé
+  const contentWidth = starWidth + 24 + labelWidth + 24 + starWidth;
+  const startX = centerX - contentWidth / 2;
+  ctx.fillStyle = COLORS.gold;
+  drawStar(ctx, startX + starWidth / 2, pillY + pillH / 2, 17, 7);
+  drawStar(ctx, startX + contentWidth - starWidth / 2, pillY + pillH / 2, 17, 7);
+
+  ctx.fillStyle = COLORS.red;
+  fitFont(ctx, category, pillWidth - starWidth * 2 - 90, pillSize, 800, 22);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(category, centerX, pillY + pillH / 2 + 2);
+  ctx.textBaseline = "alphabetic";
+
+  /* ---------------- Cadre : nom + description ---------------- */
+  const box = { x: 92, y: 800, w: WIDTH - 184, h: 240 };
+  roundedRectPath(ctx, box.x, box.y, box.w, box.h, 26);
+  ctx.fillStyle = COLORS.paper;
+  ctx.fill();
+  ctx.strokeStyle = COLORS.red;
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+
+  const name = data.name.trim() || "Partenaire";
+  ctx.fillStyle = COLORS.red;
+  fitFont(ctx, name, box.w - 90, 44, 800, 24);
+  ctx.fillText(name, centerX, box.y + 62);
+
+  const message = data.message.trim();
+  ctx.font = sansFont(27, 400);
+  const lines = message
+    ? wrapText(ctx, message, box.w - 110, 3)
+    : ["Merci de votre soutien à la Convention."];
+  ctx.fillStyle = message ? COLORS.ink : COLORS.grey;
+  lines.forEach((line, index) => {
+    ctx.fillText(line, centerX, box.y + 124 + index * 40);
+  });
+
+  /* ---------------- Ornement + slogan ---------------- */
+  const ornamentY = 1082;
+  ctx.beginPath();
+  ctx.moveTo(centerX - 150, ornamentY);
+  ctx.lineTo(centerX - 26, ornamentY);
+  ctx.moveTo(centerX + 26, ornamentY);
+  ctx.lineTo(centerX + 150, ornamentY);
+  ctx.strokeStyle = COLORS.red;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = COLORS.red;
+  drawStar(ctx, centerX, ornamentY, 12, 5);
+
+  ctx.fillStyle = COLORS.red;
+  fitFont(ctx, "INNOVER · ENTREPRENDRE · IMPACTER", WIDTH - 140, 34, 800, 20);
+  ctx.textAlign = "center";
+  ctx.fillText("INNOVER", centerX - 356, 1132);
+  ctx.fillText("ENTREPRENDRE", centerX, 1132);
+  ctx.fillText("IMPACTER", centerX + 356, 1132);
+  ctx.fillStyle = COLORS.gold;
+  ctx.beginPath();
+  ctx.arc(centerX - 178, 1123, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(centerX + 178, 1123, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  /* ---------------- Informations pratiques ---------------- */
+  const rowY = 1194;
+
+  ctx.beginPath();
+  ctx.moveTo(WIDTH / 3, rowY - 34);
+  ctx.lineTo(WIDTH / 3, rowY + 30);
+  ctx.moveTo((WIDTH / 3) * 2, rowY - 34);
+  ctx.lineTo((WIDTH / 3) * 2, rowY + 30);
+  ctx.strokeStyle = COLORS.red;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const dateLabel = data.eventDateLabel?.trim() || "09 - 10 — OCTOBRE 2026";
+  const [dateLine1, dateLine2] = dateLabel.split(" — ");
+  const locationLabel = data.location?.trim() || "Maradi, Niger";
+  const [cityLine1, cityLine2] = locationLabel.split(",");
+
+  ctx.textAlign = "left";
+
+  drawCalendarIcon(ctx, 118, rowY);
+  ctx.fillStyle = COLORS.red;
+  fitFont(ctx, dateLine1, 250, 30, 800, 20);
+  ctx.fillText(dateLine1, 168, rowY - 12);
+  ctx.fillStyle = COLORS.ink;
+  ctx.font = sansFont(23, 500);
+  ctx.fillText(dateLine2 ?? dateLine1, 168, rowY + 22);
+
+  drawPinIcon(ctx, 452, rowY);
+  ctx.fillStyle = COLORS.red;
+  fitFont(ctx, cityLine1, 240, 30, 800, 20);
+  ctx.fillText(cityLine1, 502, rowY - 12);
+  ctx.fillStyle = COLORS.ink;
+  ctx.font = sansFont(23, 500);
+  ctx.fillText((cityLine2 ?? "Niger").trim(), 502, rowY + 22);
+
+  drawPeopleIcon(ctx, 786, rowY);
+  ctx.fillStyle = COLORS.red;
+  ctx.font = sansFont(24, 800);
+  ctx.fillText("Conférences", 826, rowY - 12);
+  ctx.fillStyle = COLORS.ink;
+  ctx.font = sansFont(23, 500);
+  ctx.fillText("Ateliers · Networking", 826, rowY + 22);
+
+  /* ---------------- Vague rouge et or ---------------- */
+  drawBottomWave(ctx);
+
 }

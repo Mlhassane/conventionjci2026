@@ -5,7 +5,31 @@ import { LoaderIcon, TriangleAlertIcon } from "lucide-react";
 import { drawPartnerPoster } from "@/lib/canvas/partner-poster";
 import { ensureCanvasFonts } from "@/lib/canvas/fonts";
 import { loadImageFromUrl } from "@/lib/canvas/loadImage";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import type { Partner } from "@/lib/types";
+
+const MONTHS = [
+  "JANVIER", "FÉVRIER", "MARS", "AVRIL", "MAI", "JUIN",
+  "JUILLET", "AOÛT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DÉCEMBRE",
+];
+
+/** « 09 - 10 — OCTOBRE 2026 » : les deux lignes de la date sur l'affiche. */
+function formatPosterDate(
+  startISO?: string | null,
+  endISO?: string | null
+): string | undefined {
+  if (!startISO) return undefined;
+  const start = new Date(startISO);
+  const end = endISO ? new Date(endISO) : start;
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return undefined;
+
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const days =
+    start.getUTCDate() === end.getUTCDate()
+      ? pad(start.getUTCDate())
+      : `${pad(start.getUTCDate())} - ${pad(end.getUTCDate())}`;
+  return `${days} — ${MONTHS[end.getUTCMonth()]} ${end.getUTCFullYear()}`;
+}
 
 /**
  * Aperçu + téléchargement de l'affiche partenaire.
@@ -32,8 +56,23 @@ export function PartnerPosterPreview({
     let cancelled = false;
     (async () => {
       try {
-        // Arrière-plan : la photo des partenaires (l'affiche officielle).
+        // Arrière-plan discret : la photo des partenaires (l'affiche officielle).
         const artwork = await loadImageFromUrl(PHOTO_PARTENAIRES).catch(() => null);
+
+        let eventDateLabel: string | undefined;
+        let location: string | undefined;
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const { data: settings } = await supabase
+            .from("event_settings")
+            .select("start_date, end_date, location")
+            .limit(1)
+            .maybeSingle();
+          if (settings) {
+            eventDateLabel = formatPosterDate(settings.start_date, settings.end_date);
+            location = settings.location ?? undefined;
+          }
+        }
 
         const logo = partner.logo_url
           ? await loadImageFromUrl(partner.logo_url).catch(() => null)
@@ -51,6 +90,8 @@ export function PartnerPosterPreview({
             message: partner.description?.trim() || partner.offer?.trim() || "",
             logo,
             artwork,
+            eventDateLabel,
+            location,
           },
           { scale }
         );

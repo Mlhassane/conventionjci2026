@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2Icon } from "lucide-react";
 import { drawBadge } from "@/lib/canvas/badge";
 import { ensureCanvasFonts } from "@/lib/canvas/fonts";
-import { loadImageFromUrl } from "@/lib/canvas/loadImage";
 import type { BadgePreviewData } from "@/components/BadgePreview";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +33,6 @@ export function BadgeThumbnail({
     let cancelled = false;
     (async () => {
       try {
-        const photo = badge.photo_url
-          ? await loadImageFromUrl(badge.photo_url).catch(() => null)
-          : null;
         await ensureCanvasFonts();
         const canvas = canvasRef.current;
         if (!canvas || cancelled) return;
@@ -50,9 +46,9 @@ export function BadgeThumbnail({
             role: badge.role,
             organization: badge.organization ?? "",
             city: badge.city ?? "",
-            photo,
             uniqueCode: badge.unique_code,
             verifyUrl: `${origin}/badge/verify/${badge.unique_code}`,
+            siteLabel: origin.replace(/^https?:\/\//, "").replace(/\/$/, ""),
             eventDateLabel: event.dateLabel,
             location: event.location,
           },

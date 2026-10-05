@@ -98,11 +98,11 @@ export default function AdminProgrammePage() {
 
   async function handleSave() {
     if (!form || saving) return;
-    if (!form.date || !form.start_time || !form.title?.trim()) {
+    if (!form.date || !form.title?.trim()) {
       setFormError("La date, l'heure de début et le titre sont obligatoires.");
       return;
     }
-    if (form.end_time && form.end_time <= form.start_time) {
+    if (form.end_time && form.start_time && form.end_time <= form.start_time) {
       setFormError("L'heure de fin doit être après l'heure de début.");
       return;
     }
@@ -289,7 +289,7 @@ export default function AdminProgrammePage() {
             <TextField
               label="Heure de début"
               type="time"
-              required
+              hint="Laisser vide si l’horaire n’est pas arrêté"
               value={form?.start_time ?? ""}
               onChange={(value) => setForm({ ...form, start_time: value })}
             />
@@ -315,12 +315,21 @@ export default function AdminProgrammePage() {
             onChange={(value) => setForm({ ...form, description: value })}
           />
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <TextField
               label="Lieu"
               value={form?.location ?? ""}
               onChange={(value) => setForm({ ...form, location: value })}
             />
+            <TextField
+              label="Responsabilité"
+              placeholder="Commission Scientifique"
+              value={form?.responsibility ?? ""}
+              onChange={(value) => setForm({ ...form, responsibility: value })}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <SelectField
               label="Catégorie"
               value={(form?.category as string) ?? "Formation"}

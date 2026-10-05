@@ -132,11 +132,13 @@ export type SessionCategory =
 export type ProgramSession = {
   id: string;
   date: string; // ISO date, e.g. 2026-10-09
-  start_time: string; // HH:mm
+  start_time: string | null; // HH:mm, vide tant que l'horaire n'est pas arrêté
   end_time: string | null;
   title: string;
   description: string | null;
   location: string | null;
+  /** Commission ou structure responsable de l'activité. */
+  responsibility: string | null;
   category: SessionCategory;
   speaker_id: string | null;
   display_order: number;
