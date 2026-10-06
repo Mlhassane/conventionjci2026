@@ -41,6 +41,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BadgePreview from "@/components/BadgePreview";
 import { BadgeThumbnail } from "@/components/admin/badge-thumbnail";
+import { BadgesA4Export } from "@/components/admin/badges-a4-export";
 import { EmptyState } from "@/components/admin/ui/empty-state";
 import { ListToolbar } from "@/components/admin/ui/list-toolbar";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -162,12 +163,19 @@ export default function AdminBadgesPage() {
         title="Badges"
         description="L’organisation génère les badges officiels, puis les remet aux participants. Chaque badge est vérifiable via son QR code."
         actions={
-          pending.length > 0 && (
-            <Button size="sm" onClick={handleGenerateAll} disabled={generating}>
-              <WandSparklesIcon className="h-4 w-4" />
-              {generating ? "Génération…" : `Tout générer (${pending.length})`}
-            </Button>
-          )
+          <>
+            <BadgesA4Export
+              badges={filteredBadges}
+              eventDateLabel={eventInfo.dateLabel}
+              location={eventInfo.location}
+            />
+            {pending.length > 0 && (
+              <Button size="sm" onClick={handleGenerateAll} disabled={generating}>
+                <WandSparklesIcon className="h-4 w-4" />
+                {generating ? "Génération…" : `Tout générer (${pending.length})`}
+              </Button>
+            )}
+          </>
         }
       />
 
