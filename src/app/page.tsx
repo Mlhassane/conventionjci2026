@@ -107,10 +107,10 @@ export default async function HomePage() {
 
             <div className="animate-fade-up anim-delay-4 mt-9 flex flex-col sm:flex-row items-center gap-3">
               <Link
-                href="/j-y-seri"
+                href="/avis"
                 className="group inline-flex items-center gap-2 rounded-full bg-paper text-ink px-7 py-3.5 text-sm font-semibold shadow-cta hover:bg-blue transition-colors"
               >
-                J’y serai
+                Mon avis
                 <span
                   aria-hidden
                   className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-paper text-xs transition-transform group-hover:translate-x-0.5"
@@ -544,20 +544,20 @@ export default async function HomePage() {
           />
 
           <div className="relative mx-auto max-w-2xl">
-            <p className="eyebrow eyebrow-center !text-blue">Rejoignez-nous</p>
+            <p className="eyebrow eyebrow-center !text-blue">Votre retour compte</p>
             <h2 className="mt-5 font-serif text-3xl md:text-4xl leading-tight text-balance">
-              Prêt pour la Convention&nbsp;?
+              Vous y étiez&nbsp;?
             </h2>
             <p className="mt-4 text-sm md:text-base text-paper/70 leading-relaxed max-w-lg mx-auto">
-              Confirmez votre participation à la Convention et portrayez
-              fièrement votre engagement auprès de votre réseau.
+              Racontez votre Convention et aidez-nous à faire encore mieux
+              l&apos;année prochaine.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
               <Link
-                href="/j-y-seri"
+                href="/avis"
                 className="group inline-flex justify-center items-center gap-2 rounded-full bg-blue text-ink px-7 py-3.5 text-sm font-semibold hover:bg-paper transition-colors"
               >
-                J’y serai
+                Mon avis
                 <span
                   aria-hidden
                   className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-paper text-xs transition-transform group-hover:translate-x-0.5"

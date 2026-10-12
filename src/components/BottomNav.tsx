@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDaysIcon, HomeIcon, SparklesIcon } from "lucide-react";
+import { CalendarDaysIcon, HomeIcon, MessageSquareHeartIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Tooltip,
@@ -15,7 +15,7 @@ import { Dock, DockIcon } from "@/registry/magicui/dock";
 
 const ITEMS = [
   { href: "/", label: "Accueil", icon: HomeIcon },
-  { href: "/j-y-seri", label: "J’y serai", icon: SparklesIcon },
+  { href: "/avis", label: "Mon avis", icon: MessageSquareHeartIcon },
   { href: "/programme", label: "Programme", icon: CalendarDaysIcon },
 ];
 
@@ -23,7 +23,6 @@ const ITEMS = [
 function isActive(pathname: string | null, href: string) {
   if (!pathname) return false;
   if (href === "/") return pathname === "/";
-  if (href === "/j-y-seri") return pathname === "/j-y-seri" || pathname === "/visuel";
   return pathname.startsWith(href);
 }
 
