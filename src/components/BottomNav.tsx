@@ -19,7 +19,6 @@ const ITEMS = [
   { href: "/programme", label: "Programme", icon: CalendarDaysIcon },
 ];
 
-/** Icônes supplementary pour /visuel (alias de /j-y-seri). */
 function isActive(pathname: string | null, href: string) {
   if (!pathname) return false;
   if (href === "/") return pathname === "/";

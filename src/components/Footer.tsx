@@ -8,7 +8,6 @@ const NAV_LINKS = [
   { href: "/partenaires", label: "Partenaires" },
   { href: "/infos", label: "Infos pratiques" },
   { href: "/avis", label: "Avis" },
-  { href: "/j-y-seri", label: "Mon visuel" },
 ];
 
 const SOCIAL_KEYS = [

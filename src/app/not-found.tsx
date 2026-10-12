@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftIcon, SparklesIcon } from "lucide-react";
+import { ArrowLeftIcon, MessageSquareHeartIcon } from "lucide-react";
 
 export const metadata = {
   title: "Page introuvable — JCI Experience 2026",
@@ -14,7 +14,7 @@ export default function NotFound() {
       <h1 className="mt-6 font-serif text-6xl md:text-7xl">404</h1>
       <p className="mt-4 max-w-md text-sm leading-relaxed text-paper/70">
         Cette page n’existe pas ou a été déplacée. Retournez à l’accueil ou
-        créez votre visuel de participation.
+        donnez votre avis sur la Convention.
       </p>
 
       <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -26,11 +26,11 @@ export default function NotFound() {
           Retour à l’accueil
         </Link>
         <Link
-          href="/j-y-seri"
+          href="/avis"
           className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-medium transition-colors hover:border-white hover:bg-white/10"
         >
-          <SparklesIcon className="h-4 w-4" />
-          J’y serai
+          <MessageSquareHeartIcon className="h-4 w-4" />
+          Mon avis
         </Link>
       </div>
 

@@ -296,12 +296,12 @@ export default async function HomePage() {
               Tout pour vivre la Convention
             </h2>
             <p className="mt-4 text-sm text-ink/60 leading-relaxed">
-              Visuel, programme, annuaire — les outils officiels de
+              Avis, programme, annuaire — les outils officiels de
               l&apos;édition 2026, au même endroit.
             </p>
             <div className="mt-7">
               <Link
-                href="/j-y-seri"
+                href="/avis"
                 className="group inline-flex items-center gap-2 rounded-full bg-ink text-paper px-6 py-3 text-sm font-medium hover:bg-blue hover:text-ink transition-colors"
               >
                 Commencer
@@ -317,10 +317,10 @@ export default async function HomePage() {
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <ServiceCard
-              href="/j-y-seri"
+              href="/avis"
               icon={<SparkGlyph />}
-              title="Visuel officiel"
-              text="Affiche ta participation et partage-la partout avec ton réseau."
+              title="Mon avis"
+              text="Racontez votre Convention et notez votre expérience."
             />
             <ServiceCard
               href="/programme"
@@ -566,10 +566,10 @@ export default async function HomePage() {
                 </span>
               </Link>
               <Link
-                href="/visuel"
+                href="/programme"
                 className="inline-flex justify-center items-center rounded-full border border-white/30 px-7 py-3.5 text-sm font-medium hover:border-white hover:bg-white/10 transition-colors"
               >
-                Créer mon visuel
+                Voir le programme
               </Link>
             </div>
             <p className="mt-7 text-xs tracking-wide2 uppercase text-blue">
