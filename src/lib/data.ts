@@ -2,6 +2,7 @@ import { getSupabaseClient, isSupabaseConfigured } from "./supabase/client";
 import { defaultEventSettings } from "./defaultSettings";
 import {
   EventSettings,
+  Feedback,
   Official,
   Participant,
   Partner,
@@ -111,6 +112,18 @@ export async function getOfficials(): Promise<Official[]> {
     .order("display_order", { ascending: true });
   if (error || !data) return [];
   return data as Official[];
+}
+
+export async function getFeedbacks(): Promise<Feedback[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("feedbacks")
+    .select("*")
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data as Feedback[];
 }
 
 export async function getPublicParticipants(): Promise<Participant[]> {

@@ -1,7 +1,7 @@
 import QRCode from "qrcode";
 import { sansFont } from "./fonts";
 import { loadImageFromUrl } from "./loadImage";
-import { trimLogoEdges } from "./trimLogo";
+import { CONA, drawConaHeader, fitFont, isOrgaRole, paintConaBackground } from "./badge-theme";
 
 export type BadgeData = {
   name: string;
@@ -12,50 +12,24 @@ export type BadgeData = {
   verifyUrl: string;
   eventDateLabel: string;
   location: string;
-  /** Adresse du site affichée sous le QR (comme sur le badge de référence). */
   siteLabel?: string;
 };
 
 const WIDTH = 1080;
 const HEIGHT = 1600;
 
-// Palette inspirée du badge Niger Digital Day : blanc, bleu JCI, encre.
-const COLORS = {
-  paper: "#FFFFFF",
-  blue: "#0097D7",
-  blueDark: "#0067A6",
-  blueSoft: "#E4F4FC",
-  ink: "#130F2D",
-  slate: "#3D3859",
-  muted: "#8B87A0",
-};
-
-/** Ajuste la taille du texte jusqu'à ce qu'il tienne sur une ligne. */
-function fitFont(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-  startSize: number,
-  weight: number,
-  minSize: number
-) {
-  let size = startSize;
-  ctx.font = sansFont(size, weight);
-  while (size > minSize && ctx.measureText(text).width > maxWidth) {
-    size -= 2;
-    ctx.font = sansFont(size, weight);
-  }
-  return size;
+function goldGradient(ctx: CanvasRenderingContext2D, y0: number, y1: number) {
+  const g = ctx.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0, "#F4DC9A");
+  g.addColorStop(0.5, CONA.gold);
+  g.addColorStop(1, CONA.goldDeep);
+  return g;
 }
 
 /**
- * Dessine le badge. `scale` permet de produire une version réduite (miniatures
- * de la galerie admin) sans dupliquer le code de rendu.
- *
- * Composition, inspirée du badge « Digital Pioneers » : bandeau bleu en haut,
- * logo de la Convention, identité du participant, grand QR au centre, puis un
- * large bandeau bleu qui porte le rôle en gros caractères.
- * Aucune photo : le badge reste lisible de loin, une seule à l'unité.
+ * Badge vertical premium — 23ème Convention Nationale :
+ * fond bordeaux/noir profond, halo central, pastille rôle or,
+ * QR bordé or, pied équilibré date/lieu + slogan or.
  */
 export async function drawBadge(
   canvas: HTMLCanvasElement,
@@ -69,143 +43,223 @@ export async function drawBadge(
   if (!ctx) return;
   ctx.scale(scale, scale);
 
-  const centerX = WIDTH / 2;
+  const cx = WIDTH / 2;
+  await paintConaBackground(ctx, WIDTH, HEIGHT, isOrgaRole(data.role) ? "orga" : "default");
 
-  /* ---------------- Fond ---------------- */
-  ctx.fillStyle = COLORS.paper;
+  /* Halo lumineux derrière la zone participant */
+  const halo = ctx.createRadialGradient(cx, 1000, 40, cx, 1000, 520);
+  halo.addColorStop(0, "rgba(217,164,65,0.16)");
+  halo.addColorStop(1, "rgba(217,164,65,0)");
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 480, WIDTH, 900);
+
+  /* Vignettage doux */
+  const vig = ctx.createRadialGradient(cx, HEIGHT / 2, HEIGHT * 0.32, cx, HEIGHT / 2, HEIGHT * 0.75);
+  vig.addColorStop(0, "rgba(0,0,0,0)");
+  vig.addColorStop(1, "rgba(0,0,0,0.42)");
+  ctx.fillStyle = vig;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  /* ---------------- Bandeau bleu du haut ---------------- */
-  const topBarHeight = 96;
-  ctx.fillStyle = COLORS.blue;
-  ctx.fillRect(0, 0, WIDTH, topBarHeight);
+  const topH = 380;
+  await drawConaHeader(ctx, WIDTH, { topH, logoH: 130 });
 
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = COLORS.paper;
-  ctx.font = sansFont(26, 700);
-  ctx.letterSpacing = "4px";
+  /* Titre 23ème CONVENTION NATIONALE */
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#FFF";
+  const titleY = topH + 60;
   ctx.textAlign = "left";
-  ctx.fillText("JCI NIGER · MARADI", 52, topBarHeight / 2);
+  ctx.font = sansFont(132, 800);
+  ctx.fillText("23", 90, titleY);
+  ctx.font = sansFont(40, 600);
+  ctx.fillText("ème", 258, titleY - 62);
   ctx.textAlign = "right";
-  ctx.fillText("CONVENTION NATIONALE", WIDTH - 52, topBarHeight / 2);
-  ctx.letterSpacing = "0px";
+  fitFont(ctx, "CONVENTION", 560, 64, 800, 30);
+  ctx.fillText("CONVENTION", WIDTH - 90, titleY - 8);
+  fitFont(ctx, "NATIONALE", 560, 64, 800, 30);
+  ctx.fillText("NATIONALE", WIDTH - 90, titleY + 60);
+  ctx.textAlign = "center";
+
+  // Filet or sous le titre.
+  const ruleY = titleY + 96;
+  const rule = ctx.createLinearGradient(cx - 260, 0, cx + 260, 0);
+  rule.addColorStop(0, "rgba(217,164,65,0)");
+  rule.addColorStop(0.5, CONA.gold);
+  rule.addColorStop(1, "rgba(217,164,65,0)");
+  ctx.strokeStyle = rule;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 260, ruleY);
+  ctx.lineTo(cx + 260, ruleY);
+  ctx.stroke();
+  // Losange central.
+  ctx.save();
+  ctx.translate(cx, ruleY);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = CONA.gold;
+  ctx.fillRect(-7, -7, 14, 14);
+  ctx.restore();
+
+  /* Identité */
+  const name = (data.name || "Votre nom").trim().toUpperCase();
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 4;
+  ctx.fillStyle = "#FFFFFF";
+  fitFont(ctx, name, WIDTH - 140, 78, 800, 30);
+  ctx.fillText(name, cx, 720);
+  ctx.restore();
+
+  ctx.fillStyle = CONA.cream;
+  ctx.font = sansFont(29, 500);
+  const meta = [data.organization, data.city].filter(Boolean).join("  ·  ");
+  fitFont(ctx, meta || "Local JCI · Ville", WIDTH - 200, 29, 500, 18);
+  ctx.fillText(meta || "Local JCI · Ville", cx, 772);
+
+  /* Rôle : pastille or dégradé, texte bordeaux */
+  const role = (data.role || "PARTICIPANT").toUpperCase();
+  ctx.font = sansFont(34, 800);
+  fitFont(ctx, role, WIDTH - 320, 34, 800, 18);
+  const pillW = Math.min(ctx.measureText(role).width + 110, WIDTH - 200);
+  const pillH = 68;
+  const pillY = 806;
+  ctx.save();
+  ctx.shadowColor = "rgba(217,164,65,0.45)";
+  ctx.shadowBlur = 24;
+  const pg = ctx.createLinearGradient(0, pillY, 0, pillY + pillH);
+  pg.addColorStop(0, "#F4DC9A");
+  pg.addColorStop(1, "#C99635");
+  ctx.fillStyle = pg;
+  ctx.beginPath();
+  ctx.roundRect(cx - pillW / 2, pillY, pillW, pillH, pillH / 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = "#3A1500";
+  ctx.textBaseline = "middle";
+  ctx.fillText(role, cx, pillY + pillH / 2 + 2);
   ctx.textBaseline = "alphabetic";
 
-  /* ---------------- Les trois logos de la Convention ---------------- */
-  const logosRowY = 168 + 155 / 2;
-
-  // Les logos JCI Niger et JCI Maradi sont des PNG au fond transparent
-  // (l'arrière-plan a été retiré une seule fois, pas à chaque rendu).
-  const logosLateraux = await Promise.all([
-    loadImageFromUrl("/jci_niger.png").catch(() => null),
-    loadImageFromUrl("/jci_maradi.png").catch(() => null),
-  ]);
-
-  for (const [index, image] of logosLateraux.entries()) {
-    if (!image || image.width <= 0) continue;
-    const target = trimLogoEdges(image);
-    const ratio = Math.min(230 / target.width, 118 / target.height);
-    const dw = target.width * ratio;
-    const dh = target.height * ratio;
-    const targetX = index === 0 ? 200 : WIDTH - 200;
-    ctx.drawImage(target, targetX - dw / 2, logosRowY - dh / 2, dw, dh);
-  }
-
-  const logo = await loadImageFromUrl("/logo.png").catch(() => null);
-  if (logo && logo.width > 0) {
-    const maxW = 430;
-    const maxH = 155;
-    const ratio = Math.min(maxW / logo.width, maxH / logo.height);
-    const dw = logo.width * ratio;
-    const dh = logo.height * ratio;
-    ctx.drawImage(logo, centerX - dw / 2, logosRowY - dh / 2, dw, dh);
-  }
-
-  /* ---------------- Nom ---------------- */
-  ctx.textAlign = "center";
-  ctx.fillStyle = COLORS.ink;
-  const name = data.name || "Votre nom";
-  fitFont(ctx, name, WIDTH - 200, 72, 700, 32);
-  ctx.fillText(name, centerX, 448);
-
-  /* ---------------- Organisation et ville ---------------- */
-  ctx.fillStyle = COLORS.slate;
-  ctx.font = sansFont(28, 500);
-  const meta = [data.organization, data.city].filter(Boolean).join("  ·  ");
-  ctx.fillText(meta || "Local JCI · Ville", centerX, 506);
-
-  /* ---------------- Code unique ---------------- */
-  ctx.font = sansFont(26, 700);
-  const codeText = data.uniqueCode || "";
-  const codeWidth = Math.min(ctx.measureText(codeText).width + 72, WIDTH - 200);
-  ctx.fillStyle = COLORS.blueSoft;
+  /* QR : carte blanche bordée or */
+  const qrSize = 296;
+  const boxPad = 24;
+  const boxSize = qrSize + boxPad * 2;
+  const boxY = 905;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)";
+  ctx.shadowBlur = 34;
+  ctx.shadowOffsetY = 10;
+  ctx.fillStyle = "#FFFFFF";
   ctx.beginPath();
-  ctx.roundRect(centerX - codeWidth / 2, 542, codeWidth, 54, 27);
+  ctx.roundRect(cx - boxSize / 2, boxY, boxSize, boxSize, 30);
   ctx.fill();
-  ctx.fillStyle = COLORS.blueDark;
-  ctx.fillText(codeText, centerX, 578);
-
-  /* ---------------- Grand QR au centre ---------------- */
-  const qrSize = 352;
+  ctx.restore();
+  ctx.strokeStyle = CONA.gold;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(cx - boxSize / 2, boxY, boxSize, boxSize, 30);
+  ctx.stroke();
   const qrDataUrl = await QRCode.toDataURL(data.verifyUrl, {
     margin: 0,
     width: qrSize,
-    color: { dark: "#000000", light: COLORS.paper },
+    color: { dark: "#000000", light: "#FFFFFF" },
   });
   const qrImg = await loadImageFromUrl(qrDataUrl);
-  ctx.drawImage(qrImg, centerX - qrSize / 2, 640, qrSize, qrSize);
+  ctx.drawImage(qrImg, cx - qrSize / 2, boxY + boxPad, qrSize, qrSize);
 
-  ctx.fillStyle = COLORS.muted;
-  ctx.font = sansFont(21, 400);
-  ctx.fillText("Scannez pour vérifier ce badge", centerX, 1032);
+  ctx.fillStyle = CONA.muted;
+  ctx.font = sansFont(22, 400);
+  ctx.fillText("Scannez pour vérifier ce badge", cx, boxY + boxSize + 40);
 
-  /* ---------------- Pastille du site ---------------- */
-  if (data.siteLabel) {
-    ctx.font = sansFont(23, 600);
-    const siteWidth = Math.min(
-      ctx.measureText(data.siteLabel).width + 64,
-      WIDTH - 160
-    );
-    ctx.fillStyle = COLORS.blue;
-    ctx.beginPath();
-    ctx.roundRect(centerX - siteWidth / 2, 1064, siteWidth, 52, 26);
-    ctx.fill();
-    ctx.fillStyle = COLORS.paper;
-    ctx.fillText(data.siteLabel, centerX, 1098);
-  }
+  ctx.fillStyle = goldGradient(ctx, boxY + boxSize + 50, boxY + boxSize + 96);
+  ctx.font = sansFont(32, 700);
+  try {
+    ctx.letterSpacing = "5px";
+  } catch { /* noop */ }
+  ctx.fillText(data.uniqueCode || "", cx, boxY + boxSize + 86);
+  try {
+    ctx.letterSpacing = "0px";
+  } catch { /* noop */ }
 
-  /* ---------------- Bandeau bleu du bas ---------------- */
-  const bottomTop = 1180;
-  ctx.fillStyle = COLORS.blue;
-  ctx.fillRect(0, bottomTop, WIDTH, HEIGHT - bottomTop);
-  ctx.fillStyle = COLORS.blueDark;
-  ctx.fillRect(0, bottomTop, WIDTH, 8);
-
-  // Le rôle en très gros caractères, comme le titre du badge de référence.
-  const roleText = (data.role || "PARTENAIRE").toUpperCase();
-  ctx.fillStyle = COLORS.paper;
-  fitFont(ctx, roleText, WIDTH - 120, 92, 800, 40);
-  ctx.fillText(roleText, centerX, bottomTop + 190);
-
-  // Filet discret
-  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  /* Pied : deux blocs équilibrés + slogan */
+  const footTop = HEIGHT - 235;
+  // Ligne de séparation or.
+  const sep = ctx.createLinearGradient(80, 0, WIDTH - 80, 0);
+  sep.addColorStop(0, "rgba(217,164,65,0)");
+  sep.addColorStop(0.5, "rgba(217,164,65,0.75)");
+  sep.addColorStop(1, "rgba(217,164,65,0)");
+  ctx.strokeStyle = sep;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(centerX - 150, bottomTop + 230);
-  ctx.lineTo(centerX + 150, bottomTop + 230);
+  ctx.moveTo(80, footTop);
+  ctx.lineTo(WIDTH - 80, footTop);
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  ctx.font = sansFont(32, 700);
-  ctx.letterSpacing = "6px";
-  ctx.fillText("CONVENTION 2026", centerX, bottomTop + 288);
-  ctx.letterSpacing = "0px";
+  const leftX = WIDTH * 0.28;
+  const rightX = WIDTH * 0.74;
+  const iconY = footTop + 48;
 
-  ctx.fillStyle = "rgba(255,255,255,0.78)";
-  ctx.font = sansFont(23, 500);
-  ctx.fillText(
-    [data.eventDateLabel, data.location].filter(Boolean).join("  ·  "),
-    centerX,
-    bottomTop + 340
-  );
+  // Calendrier or avec pastilles.
+  ctx.strokeStyle = CONA.gold;
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.roundRect(leftX - 21, iconY - 20, 42, 38, 6);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(leftX - 21, iconY - 8);
+  ctx.lineTo(leftX + 21, iconY - 8);
+  ctx.stroke();
+  ctx.fillStyle = CONA.gold;
+  for (const [dx, dy] of [[-9, 2], [0, 2], [9, 2], [-9, 11], [0, 11], [9, 11]] as const) {
+    ctx.beginPath();
+    ctx.arc(leftX + dx, iconY + dy, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Pin or (goutte).
+  ctx.fillStyle = CONA.gold;
+  ctx.beginPath();
+  ctx.arc(rightX, iconY - 4, 15, Math.PI * 0.85, Math.PI * 2.15);
+  ctx.lineTo(rightX, iconY + 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#2A0B0B";
+  ctx.beginPath();
+  ctx.arc(rightX, iconY - 4, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = sansFont(40, 800);
+  ctx.fillText("09 – 10", leftX, iconY + 58);
+  ctx.fillStyle = CONA.cream;
+  ctx.font = sansFont(21, 600);
+  const dateLabel = (data.eventDateLabel || "OCTOBRE 2026").toUpperCase().replace(/^09\s*[–-]\s*10\s*/, "");
+  fitFont(ctx, dateLabel || "OCTOBRE 2026", 300, 21, 600, 15);
+  ctx.fillText(dateLabel || "OCTOBRE 2026", leftX, iconY + 86);
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = sansFont(36, 800);
+  const cityMain = ((data.location || "MARADI,").toUpperCase().split(",")[0] + ",").trim();
+  fitFont(ctx, cityMain, 300, 36, 800, 20);
+  ctx.fillText(cityMain, rightX, iconY + 56);
+  ctx.fillStyle = CONA.cream;
+  ctx.font = sansFont(21, 500);
+  ctx.fillText("NIGER", rightX, iconY + 86);
+
+  // Séparateur vertical.
+  ctx.strokeStyle = "rgba(217,164,65,0.55)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, footTop + 22);
+  ctx.lineTo(cx, footTop + 104);
+  ctx.stroke();
+
+  ctx.fillStyle = goldGradient(ctx, HEIGHT - 66, HEIGHT - 26);
+  ctx.font = sansFont(27, 700);
+  try {
+    ctx.letterSpacing = "2px";
+  } catch { /* noop */ }
+  ctx.fillText("INNOVER • ENTREPRENDRE • IMPACTER", cx, HEIGHT - 40);
+  try {
+    ctx.letterSpacing = "0px";
+  } catch { /* noop */ }
 }

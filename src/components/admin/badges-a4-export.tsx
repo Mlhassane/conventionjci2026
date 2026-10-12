@@ -12,11 +12,11 @@ import type { Badge } from "@/lib/types";
 
 /**
  * Export « prêt pour l'imprimeur » : tous les badges sont posés sur des
- * feuilles A4 paysage, avec un repère de coupe autour de chacun.
+ * feuilles A4, avec un repère de coupe autour de chacun.
  *
  * Deux formats :
  *  - `vertical` : 54 × 80 mm, 10 badges par page (8 feuilles pour 78) ;
- *  - `paysage`  : 100 × 65 mm, 4 badges par page (20 feuilles pour 78).
+ *  - `paysage`  : 100 × 65 mm, 8 badges par page A4 portrait (10 feuilles pour 78).
  *
  * Le PDF est produit par la fenêtre d'impression du navigateur
  * (Fichier > Enregistrer au format PDF) : aucune dépendance à installer.
@@ -36,6 +36,13 @@ const FORMATS: Record<
     renderScale: number;
     cropMarks: boolean;
     gap: number;
+    /** Dimensions de la feuille en mm (largeur × hauteur). */
+    pageW: number;
+    pageH: number;
+    /** Marges de la feuille en mm. */
+    pageMargin: number;
+    /** Orientation pour la règle CSS @page. */
+    pageOrient: "landscape" | "portrait";
   }
 > = {
   vertical: {
@@ -48,17 +55,25 @@ const FORMATS: Record<
     renderScale: 0.62,
     cropMarks: false,
     gap: 4,
+    pageW: 297,
+    pageH: 210,
+    pageMargin: 5,
+    pageOrient: "landscape",
   },
   paysage: {
     colonnes: 2,
-    rangees: 2,
+    rangees: 4,
     badgeW: 100,
     badgeH: 65,
-    parPage: 4,
+    parPage: 8,
     libelle: "paysage 100 × 65 mm",
     renderScale: 1,
     cropMarks: false,
     gap: 4,
+    pageW: 210,
+    pageH: 297,
+    pageMargin: 3,
+    pageOrient: "portrait",
   },
   a6: {
     colonnes: 2,
@@ -71,6 +86,10 @@ const FORMATS: Record<
     cropMarks: true,
     // 10 mm : les traits de coupe des deux cartes ne se touchent pas.
     gap: 10,
+    pageW: 297,
+    pageH: 210,
+    pageMargin: 5,
+    pageOrient: "landscape",
   },
   compact: {
     colonnes: 4,
@@ -82,12 +101,12 @@ const FORMATS: Record<
     renderScale: 1,
     cropMarks: true,
     gap: 6,
+    pageW: 297,
+    pageH: 210,
+    pageMargin: 5,
+    pageOrient: "landscape",
   },
 };
-
-const PAGE = { width: 297, height: 210 }; // A4 paysage, en millimètres
-const MARGIN = 5;
-const GAP = 4;
 
 export function BadgesA4Export({
   badges,
@@ -160,13 +179,13 @@ export function BadgesA4Export({
 <meta charset="utf-8">
 <title>Badges — Convention 2026</title>
 <style>
-  @page { size: A4 landscape; margin: 0; }
+  @page { size: A4 ${config.pageOrient}; margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #f4f4f5; }
   .page {
-    width: ${PAGE.width}mm;
-    height: ${PAGE.height}mm;
-    padding: ${MARGIN}mm;
+    width: ${config.pageW}mm;
+    height: ${config.pageH}mm;
+    padding: ${config.pageMargin}mm;
     display: grid;
     grid-template-columns: repeat(${config.colonnes}, ${config.badgeW}mm);
     grid-auto-rows: ${config.badgeH}mm;
@@ -205,7 +224,7 @@ export function BadgesA4Export({
   @media screen {
     .page { margin: 0 auto 8mm; box-shadow: 0 2px 12px rgba(0,0,0,.18); }
     .note {
-      max-width: ${PAGE.width}mm;
+      max-width: ${config.pageW}mm;
       margin: 0 auto 6mm;
       font: 13px/1.5 system-ui, sans-serif;
       color: #444;
@@ -215,7 +234,7 @@ export function BadgesA4Export({
 </head>
 <body>
 <p class="note">
-  ${badges.length} badge(s) — ${pages.length} page(s) A4 paysage,
+  ${badges.length} badge(s) — ${pages.length} page(s) A4 ${config.pageOrient === "portrait" ? "portrait" : "paysage"},
   ${config.parPage} par page, format ${config.libelle}.
   Dans la fenêtre d'impression : destination « Enregistrer au format PDF »,
   format A4, marges « Aucune », échelle 100 %. Les pointillés sont les repères de coupe.
@@ -265,6 +284,17 @@ ${pages
   return (
     <>
       <Button
+        variant="default"
+        size="sm"
+        onClick={() => exportFormat("paysage")}
+        disabled={busy !== null}
+      >
+        <PrinterIcon className="h-4 w-4" />
+        {busy
+          ? "Mise en page…"
+          : `Imprimer les ${badges.length} badges (A4)`}
+      </Button>
+      <Button
         variant="outline"
         size="sm"
         onClick={() => exportFormat("paysage")}
@@ -273,7 +303,7 @@ ${pages
         <PrinterIcon className="h-4 w-4" />
         {busy === "paysage"
           ? "Mise en page…"
-          : `A4 100 × 65 (${Math.ceil(badges.length / 4)} p.)`}
+          : `A4 100 × 65 (${Math.ceil(badges.length / 8)} p.)`}
       </Button>
       <Button
         variant="outline"

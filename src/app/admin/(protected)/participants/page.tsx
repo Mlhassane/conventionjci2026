@@ -18,6 +18,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import ImageUpload from "@/components/form/ImageUpload";
 import { uploadAdminImage } from "@/lib/admin/uploadImage";
 import { Badge, Participant } from "@/lib/types";
+import { isOrgaRole } from "@/lib/canvas/badge-theme";
 import { generateMemberCode, normalizePhone } from "@/lib/participants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge as UiBadge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/admin/ui/empty-state";
 import { SelectField, TextField } from "@/components/admin/ui/form-fields";
 import { ListToolbar } from "@/components/admin/ui/list-toolbar";
@@ -88,6 +90,7 @@ export default function AdminParticipantsPage() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const [group, setGroup] = useState<"participants" | "orgas">("participants");
 
   const badgeByParticipant = useMemo(() => {
     const map = new Map<string, Badge>();
@@ -99,15 +102,30 @@ export default function AdminParticipantsPage() {
     return map;
   }, [badges]);
 
+  // Séparation participants / organisateurs selon le même critère que le visuel du badge.
+  const groupRows = useMemo(
+    () =>
+      rows.filter((participant) => isOrgaRole(participant.role ?? "") === (group === "orgas")),
+    [rows, group]
+  );
+
+  const groupCounts = useMemo(() => {
+    let orgas = 0;
+    for (const participant of rows) {
+      if (isOrgaRole(participant.role ?? "")) orgas += 1;
+    }
+    return { orgas, participants: rows.length - orgas };
+  }, [rows]);
+
   const missingCodes = useMemo(
-    () => rows.filter((participant) => !participant.is_admin && !participant.member_code),
-    [rows]
+    () => groupRows.filter((participant) => !participant.is_admin && !participant.member_code),
+    [groupRows]
   );
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return rows;
-    return rows.filter((participant) =>
+    if (!query) return groupRows;
+    return groupRows.filter((participant) =>
       [
         participant.name,
         participant.phone,
@@ -119,7 +137,7 @@ export default function AdminParticipantsPage() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query))
     );
-  }, [rows, search]);
+  }, [groupRows, search]);
 
   async function copyCode(code: string) {
     try {
@@ -192,8 +210,9 @@ export default function AdminParticipantsPage() {
       setFormError("Le nom complet est requis.");
       return;
     }
-    const phone = normalizePhone(form.phone ?? "");
-    if (!phone || phone.replace(/\D/g, "").length < 8) {
+    const rawPhone = normalizePhone(form.phone ?? "");
+    const phone = rawPhone ? rawPhone : null;
+    if (phone && phone.replace(/\D/g, "").length < 8) {
       setFormError("Numéro de téléphone invalide (ex : 90 00 00 00).");
       return;
     }
@@ -203,16 +222,18 @@ export default function AdminParticipantsPage() {
     const supabase = getSupabaseClient();
 
     if (form.id) {
-      const { data: clash } = await supabase
-        ?.from("participants")
-        .select("id")
-        .eq("phone", phone)
-        .neq("id", form.id)
-        .limit(1);
-      if (clash && clash.length > 0) {
-        setFormError("Ce numéro est déjà utilisé par un autre participant.");
-        setSaving(false);
-        return;
+      if (phone) {
+        const { data: clash } = await supabase
+          ?.from("participants")
+          .select("id")
+          .eq("phone", phone)
+          .neq("id", form.id)
+          .limit(1);
+        if (clash && clash.length > 0) {
+          setFormError("Ce numéro est déjà utilisé par un autre participant.");
+          setSaving(false);
+          return;
+        }
       }
       const ok = await update(form.id, {
         name: form.name.trim(),
@@ -223,6 +244,19 @@ export default function AdminParticipantsPage() {
         photo_url: form.photo_url?.trim() || null,
         is_public: form.is_public ?? true,
       });
+      // Synchro du badge lié : le badge reprend les infos du participant.
+      if (ok) {
+        await supabase
+          ?.from("badges")
+          .update({
+            full_name: form.name.trim(),
+            role: form.role || "Participant",
+            organization: form.organization?.trim() || null,
+            city: form.city?.trim() || null,
+            photo_url: form.photo_url?.trim() || null,
+          })
+          .eq("participant_id", form.id);
+      }
       setSaving(false);
       if (ok) {
         setForm(null);
@@ -233,15 +267,17 @@ export default function AdminParticipantsPage() {
       return;
     }
 
-    const { data: existing } = await supabase
-      ?.from("participants")
-      .select("id")
-      .eq("phone", phone)
-      .limit(1);
-    if (existing && existing.length > 0) {
-      setFormError("Ce numéro est déjà enregistré.");
-      setSaving(false);
-      return;
+    if (phone) {
+      const { data: existing } = await supabase
+        ?.from("participants")
+        .select("id")
+        .eq("phone", phone)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        setFormError("Ce numéro est déjà enregistré.");
+        setSaving(false);
+        return;
+      }
     }
 
     let created = false;
@@ -293,7 +329,7 @@ export default function AdminParticipantsPage() {
             <Button
               size="sm"
               onClick={() => {
-                setForm(EMPTY);
+                setForm({ ...EMPTY, role: group === "orgas" ? "Organisateur" : "Participant" });
                 setFormError(null);
               }}
             >
@@ -332,13 +368,20 @@ export default function AdminParticipantsPage() {
       {error && <p className="text-sm text-destructive">{error}</p>}
       {codeError && <p className="text-sm text-destructive">{codeError}</p>}
 
+      <Tabs value={group} onValueChange={(value) => setGroup(value as "participants" | "orgas")}>
+        <TabsList>
+          <TabsTrigger value="participants">Participants ({groupCounts.participants})</TabsTrigger>
+          <TabsTrigger value="orgas">Organisateurs ({groupCounts.orgas})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <Card className="gap-0 overflow-hidden border-line/10 py-0 shadow-card">
         <ListToolbar
           search={search}
           onSearchChange={setSearch}
           placeholder="Nom, téléphone, code, ville…"
           count={filtered.length}
-          total={rows.length}
+          total={groupRows.length}
         />
         <CardContent className="px-0">
           {loading ? (
@@ -347,9 +390,9 @@ export default function AdminParticipantsPage() {
             <div className="p-4">
               <EmptyState
                 icon={UserRoundIcon}
-                title={rows.length === 0 ? "Aucun participant inscrit" : "Aucun résultat"}
+                title={groupRows.length === 0 ? "Aucun participant inscrit" : "Aucun résultat"}
                 description={
-                  rows.length === 0
+                  groupRows.length === 0
                     ? "Inscrivez le premier participant de la Convention."
                     : "Modifiez votre recherche pour trouver un participant."
                 }
@@ -516,8 +559,7 @@ export default function AdminParticipantsPage() {
               onChange={(value) => setForm({ ...form, name: value })}
             />
             <TextField
-              label="Téléphone"
-              required
+              label="Téléphone (optionnel)"
               inputMode="tel"
               placeholder="90 00 00 00"
               value={form?.phone ?? ""}

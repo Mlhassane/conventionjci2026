@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { href: "/intervenants", label: "Intervenants" },
   { href: "/partenaires", label: "Partenaires" },
   { href: "/infos", label: "Infos pratiques" },
+  { href: "/avis", label: "Avis" },
   { href: "/j-y-seri", label: "Mon visuel" },
 ];
 

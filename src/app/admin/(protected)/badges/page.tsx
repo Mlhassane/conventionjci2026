@@ -9,6 +9,7 @@ import {
   EyeIcon,
   IdCardIcon,
   RotateCcwIcon,
+  RefreshCwIcon,
   Trash2Icon,
   UserRoundIcon,
   UsersIcon,
@@ -18,6 +19,7 @@ import { useTable } from "@/lib/admin/useTable";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { Badge, Participant } from "@/lib/types";
 import { generateBadgeCode } from "@/lib/badgeCode";
+import { isOrgaRole } from "@/lib/canvas/badge-theme";
 import { formatShortDateRange } from "@/lib/date";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,9 @@ export default function AdminBadgesPage() {
   const badgesTable = useTable<Badge>("badges", "created_at");
   const participantsTable = useTable<Participant>("participants", "created_at");
   const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [group, setGroup] = useState<"participants" | "orgas">("participants");
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState<Badge | null>(null);
@@ -96,15 +101,39 @@ export default function AdminBadgesPage() {
     [participantsTable.rows, badgeByParticipant]
   );
 
+  // Séparation participants / organisateurs selon le même critère que le visuel du badge.
+  const isOrga = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const participant of participantsTable.rows) {
+      map.set(participant.id, isOrgaRole(participant.role ?? ""));
+    }
+    return map;
+  }, [participantsTable.rows]);
+
+  const pendingOrgas = useMemo(
+    () => pending.filter((participant) => isOrga.get(participant.id)),
+    [pending, isOrga]
+  );
+  const pendingParticipants = useMemo(
+    () => pending.filter((participant) => !isOrga.get(participant.id)),
+    [pending, isOrga]
+  );
+  const groupPending = group === "orgas" ? pendingOrgas : pendingParticipants;
+
+  const groupBadges = useMemo(
+    () => badgesTable.rows.filter((badge) => isOrgaRole(badge.role) === (group === "orgas")),
+    [badgesTable.rows, group]
+  );
+
   const filteredBadges = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return badgesTable.rows;
-    return badgesTable.rows.filter((badge) =>
+    if (!query) return groupBadges;
+    return groupBadges.filter((badge) =>
       [badge.full_name, badge.unique_code, badge.organization, badge.city]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query))
     );
-  }, [badgesTable.rows, search]);
+  }, [groupBadges, search]);
 
   async function insertBadge(participant: Participant): Promise<boolean> {
     const supabase = getSupabaseClient();
@@ -143,7 +172,7 @@ export default function AdminBadgesPage() {
     setGenerating(true);
     setError(null);
     let failed = 0;
-    for (const participant of pending) {
+    for (const participant of groupPending) {
       if (!(await insertBadge(participant))) failed += 1;
     }
     await badgesTable.refresh();
@@ -151,7 +180,58 @@ export default function AdminBadgesPage() {
     if (failed > 0) {
       setError(`${failed} badge(s) n'ont pas pu être générés. Réessayez.`);
     } else {
-      toast.success(`${pending.length} badge(s) généré(s)`);
+      toast.success(`${groupPending.length} badge(s) généré(s)`);
+    }
+  }
+
+  async function handleRegenerateAll() {
+    // Resynchronise chaque badge du groupe depuis son participant (nom, rôle, orga, ville, photo).
+    setGenerating(true);
+    setError(null);
+    const byId = new Map(participantsTable.rows.map((p) => [p.id, p]));
+    let updated = 0;
+    let failed = 0;
+    for (const badge of groupBadges) {
+      if (!badge.participant_id) continue;
+      const participant = byId.get(badge.participant_id);
+      if (!participant) continue;
+      const ok = await badgesTable.update(badge.id, {
+        full_name: participant.name,
+        role: participant.role ?? "Participant",
+        organization: participant.organization,
+        city: participant.city,
+        photo_url: participant.photo_url,
+      });
+      if (ok) updated += 1;
+      else failed += 1;
+    }
+    await badgesTable.refresh();
+    setGenerating(false);
+    if (failed > 0) {
+      setError(`${failed} badge(s) n'ont pas pu être régénérés. Réessayez.`);
+    } else {
+      toast.success(`${updated} badge(s) régénéré(s) depuis les participants`);
+    }
+  }
+
+  async function handleDeleteAll() {
+    const supabase = getSupabaseClient();
+    const ids = groupBadges.map((badge) => badge.id);
+    if (!supabase || ids.length === 0) {
+      setConfirmDeleteAll(false);
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    const { error: deleteError } = await supabase.from("badges").delete().in("id", ids);
+    await badgesTable.refresh();
+    setDeleting(false);
+    setConfirmDeleteAll(false);
+    if (deleteError) {
+      setError("Suppression impossible. Réessayez.");
+      toast.error("Suppression impossible");
+    } else {
+      toast.success(`${ids.length} badge(s) supprimé(s)`);
     }
   }
 
@@ -169,15 +249,54 @@ export default function AdminBadgesPage() {
               eventDateLabel={eventInfo.dateLabel}
               location={eventInfo.location}
             />
-            {pending.length > 0 && (
+            {groupPending.length > 0 && (
               <Button size="sm" onClick={handleGenerateAll} disabled={generating}>
                 <WandSparklesIcon className="h-4 w-4" />
-                {generating ? "Génération…" : `Tout générer (${pending.length})`}
+                {generating ? "Génération…" : `Tout générer (${groupPending.length})`}
+              </Button>
+            )}
+            {groupBadges.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRegenerateAll}
+                disabled={generating}
+              >
+                <RefreshCwIcon className="h-4 w-4" />
+                {generating ? "Régénération…" : "Régénérer les badges"}
+              </Button>
+            )}
+            {groupBadges.length > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setConfirmDeleteAll(true)}
+                disabled={generating || deleting}
+              >
+                <Trash2Icon className="h-4 w-4" />
+                Tout supprimer
               </Button>
             )}
           </>
         }
       />
+
+      <Tabs
+        value={group}
+        onValueChange={(value) => {
+          setGroup(value as "participants" | "orgas");
+          setVisible(GALLERY_STEP);
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="participants">
+            Participants ({pendingParticipants.length})
+          </TabsTrigger>
+          <TabsTrigger value="orgas">
+            Organisateurs ({pendingOrgas.length})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
@@ -202,7 +321,7 @@ export default function AdminBadgesPage() {
         <p className="text-sm text-destructive">{error ?? badgesTable.error}</p>
       )}
 
-      {pending.length > 0 && (
+      {groupPending.length > 0 && (
         <Card className="gap-0 overflow-hidden border-line/10 py-0 shadow-card">
           <div className="border-b px-6 py-4">
             <h2 className="text-sm font-semibold text-foreground">En attente de badge</h2>
@@ -212,7 +331,7 @@ export default function AdminBadgesPage() {
           </div>
           <CardContent className="px-0">
             <div className="divide-y">
-              {pending.map((participant) => (
+              {groupPending.map((participant) => (
                 <div
                   key={participant.id}
                   className="flex items-center justify-between gap-4 px-6 py-3"
@@ -222,7 +341,9 @@ export default function AdminBadgesPage() {
                       {participant.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {[participant.phone, participant.member_code].filter(Boolean).join(" · ") || "—"}
+                      {[participant.role, participant.phone, participant.member_code]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
                     </p>
                   </div>
                   <Button
@@ -260,7 +381,7 @@ export default function AdminBadgesPage() {
           onSearchChange={setSearch}
           placeholder="Nom, code, ville…"
           count={filteredBadges.length}
-          total={badgesTable.rows.length}
+          total={groupBadges.length}
         />
         {view === "galerie" ? (
           <div className="p-6">
@@ -326,9 +447,9 @@ export default function AdminBadgesPage() {
             <div className="p-4">
               <EmptyState
                 icon={IdCardIcon}
-                title={badgesTable.rows.length === 0 ? "Aucun badge généré" : "Aucun résultat"}
+                title={groupBadges.length === 0 ? "Aucun badge généré" : "Aucun résultat"}
                 description={
-                  badgesTable.rows.length === 0
+                  groupBadges.length === 0
                     ? "Générez le premier badge de la Convention."
                     : "Modifiez votre recherche pour trouver un badge."
                 }
@@ -450,6 +571,38 @@ export default function AdminBadgesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreview(null)}>
               Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmDeleteAll}
+        onOpenChange={(open) => !deleting && setConfirmDeleteAll(open)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Supprimer {groupBadges.length} badge{groupBadges.length > 1 ? "s" : ""} ?
+            </DialogTitle>
+            <DialogDescription>
+              {group === "orgas"
+                ? "Tous les badges organisateurs seront supprimés. "
+                : "Tous les badges participants seront supprimés. "}
+              Les QR codes associés deviendront invalides. Cette action est définitive.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteAll(false)}
+              disabled={deleting}
+            >
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteAll} disabled={deleting}>
+              <Trash2Icon className="h-4 w-4" />
+              {deleting ? "Suppression…" : "Tout supprimer"}
             </Button>
           </DialogFooter>
         </DialogContent>

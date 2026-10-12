@@ -15,6 +15,7 @@ import {
   LogOutIcon,
   MicIcon,
   KeyRoundIcon,
+  MessageSquareHeartIcon,
   SettingsIcon,
   ShieldCheckIcon,
   UserCogIcon,
@@ -68,6 +69,7 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
       { href: "/admin/officials", label: "Officiels", icon: ShieldCheckIcon },
       { href: "/admin/programme", label: "Programme", icon: CalendarDaysIcon },
       { href: "/admin/infos", label: "Infos pratiques", icon: InfoIcon },
+      { href: "/admin/avis", label: "Avis", icon: MessageSquareHeartIcon },
     ],
   },
   {

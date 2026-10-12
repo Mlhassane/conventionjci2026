@@ -33,6 +33,19 @@ export type Participation = {
   created_at: string;
 };
 
+/** Avis / retour laissé par un visiteur sur la Convention (modéré avant publication). */
+export type Feedback = {
+  id: string;
+  name: string;
+  city: string | null;
+  organization: string | null;
+  message: string;
+  /** Note de 1 à 5, optionnelle. */
+  rating: number | null;
+  is_approved: boolean;
+  created_at: string;
+};
+
 export type Participant = {
   id: string;
   name: string;
