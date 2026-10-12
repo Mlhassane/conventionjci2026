@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Participant } from "@/lib/types";
+import { resolveImageUrl } from "@/lib/drive";
 import EmptyState from "@/components/EmptyState";
 
 export default function ParticipantsView({
@@ -79,7 +80,7 @@ export default function ParticipantsView({
               <div className="h-14 w-14 mx-auto rounded-full bg-blue/10 border border-blue/20 flex items-center justify-center overflow-hidden">
                 {p.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.photo_url} alt={p.name} className="h-full w-full object-cover" />
+                  <img src={resolveImageUrl(p.photo_url) ?? p.photo_url} alt={p.name} className="h-full w-full object-cover" />
                 ) : (
                   <span className="font-serif text-lg text-blue-dark">{p.name.charAt(0)}</span>
                 )}

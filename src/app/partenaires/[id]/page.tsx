@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeftIcon, Building2Icon, MessageCircleIcon, TagIcon } from "lucide-react";
 import Footer from "@/components/Footer";
 import { getPartner } from "@/lib/data";
+import { resolveImageUrl } from "@/lib/drive";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,7 +54,7 @@ export default async function PartnerDetailPage({
             <div className="flex h-24 w-40 shrink-0 items-center justify-center rounded-lg border bg-white p-4">
               {partner.logo_url ? (
                 <Image
-                  src={partner.logo_url}
+                  src={resolveImageUrl(partner.logo_url) ?? partner.logo_url}
                   alt={partner.name}
                   width={200}
                   height={80}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRightIcon, Building2Icon, SearchIcon, TagIcon } from "lucide-react";
 import type { Partner, PartnerCategory } from "@/lib/types";
+import { resolveImageUrl } from "@/lib/drive";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -103,7 +104,7 @@ export function PartnerDirectory({ partners }: { partners: Partner[] }) {
                   <div className="flex h-16 w-full items-center justify-center rounded-lg border bg-white p-3">
                     {partner.logo_url ? (
                       <Image
-                        src={partner.logo_url}
+                        src={resolveImageUrl(partner.logo_url) ?? partner.logo_url}
                         alt={partner.name}
                         width={160}
                         height={64}

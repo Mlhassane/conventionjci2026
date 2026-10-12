@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Partner } from "@/lib/types";
+import { resolveImageUrl } from "@/lib/drive";
 import { InfiniteSlider } from "@/components/ui/infinite-slider";
 
 /**
@@ -35,7 +36,7 @@ export function PartnerLogoSlider({ partners }: { partners: Partner[] }) {
           >
             {partner.logo_url ? (
               <Image
-                src={partner.logo_url}
+                src={resolveImageUrl(partner.logo_url) ?? partner.logo_url}
                 alt={partner.name}
                 width={160}
                 height={56}

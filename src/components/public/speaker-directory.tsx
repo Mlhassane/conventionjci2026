@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRightIcon, MicIcon, SearchIcon } from "lucide-react";
 import type { Speaker } from "@/lib/types";
+import { resolveImageUrl } from "@/lib/drive";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -82,7 +83,7 @@ export function SpeakerDirectory({ speakers }: { speakers: Speaker[] }) {
                   <div className="flex items-start justify-between gap-3">
                     <Avatar className="h-14 w-14">
                       {speaker.photo_url && (
-                        <AvatarImage src={speaker.photo_url} alt={speaker.name} />
+                        <AvatarImage src={resolveImageUrl(speaker.photo_url) ?? speaker.photo_url} alt={speaker.name} />
                       )}
                       <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
                         {initials(speaker.name)}
@@ -137,7 +138,7 @@ export function SpeakerAvatar({
   return (
     <Avatar className={className} style={{ width: size, height: size }}>
       {speaker.photo_url && (
-        <AvatarImage src={speaker.photo_url} alt={speaker.name} className="object-cover" />
+        <AvatarImage src={resolveImageUrl(speaker.photo_url) ?? speaker.photo_url} alt={speaker.name} className="object-cover" />
       )}
       <AvatarFallback className="bg-primary/10 text-2xl font-medium text-primary">
         {initials(speaker.name)}
@@ -150,7 +151,7 @@ export function SpeakerPhoto({ speaker }: { speaker: Speaker }) {
   if (!speaker.photo_url) return null;
   return (
     <Image
-      src={speaker.photo_url}
+      src={resolveImageUrl(speaker.photo_url) ?? speaker.photo_url}
       alt={speaker.name}
       width={160}
       height={160}

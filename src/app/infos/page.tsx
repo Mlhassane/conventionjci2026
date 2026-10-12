@@ -2,6 +2,7 @@ import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { getEventSettings, getOfficials, getPracticalInfo } from "@/lib/data";
+import { resolveImageUrl } from "@/lib/drive";
 import { PracticalInfoSection } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +80,7 @@ export default async function InfosPage() {
                   {official.photo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={official.photo_url}
+                      src={resolveImageUrl(official.photo_url) ?? official.photo_url}
                       alt={official.name}
                       className="h-14 w-14 shrink-0 rounded-full object-cover border-2 border-blue/30"
                     />
